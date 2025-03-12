@@ -1,0 +1,123 @@
+body {
+    background-color: #f8f9fa;
+    font-family: 'Noto Sans JP', sans-serif;
+}
+
+.container {
+    max-width: 1000px;
+}
+
+header h1 {
+    color: #343a40;
+    font-weight: bold;
+}
+
+.card {
+    border-radius: 10px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    margin-bottom: 20px;
+}
+
+.card-header {
+    border-radius: 10px 10px 0 0 !important;
+}
+
+.result-item {
+    padding: 15px;
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    height: 100%;
+}
+
+.result-item h4 {
+    color: #343a40;
+    font-weight: bold;
+    margin-bottom: 15px;
+    border-bottom: 2px solid #007bff;
+    padding-bottom: 5px;
+}
+
+.result-content {
+    padding: 10px;
+}
+
+.result-value {
+    font-size: 1.2rem;
+    font-weight: bold;
+}
+
+.result-gogyo {
+    color: #6c757d;
+}
+
+.result-fortune {
+    font-size: 1.5rem;
+    font-weight: bold;
+    margin-top: 10px;
+}
+
+.result-description {
+    font-size: 0.9rem;
+    color: #666;
+    margin-top: 10px;
+    line-height: 1.4;
+}
+
+.result-fortune.daikichi {
+    color: #dc3545;  /* 赤 */
+}
+
+.result-fortune.chukichi {
+    color: #fd7e14;  /* オレンジ */
+}
+
+.result-fortune.shokichi {
+    color: #28a745;  /* 緑 */
+}
+
+.result-fortune.kichi {
+    color: #28a745;  /* 緑 */
+}
+
+.result-fortune.suekichi {
+    color: #20c997;  /* ティール */
+}
+
+.result-fortune.hankichi {
+    color: #17a2b8;  /* シアン */
+}
+
+.result-fortune.hankyo {
+    color: #ffc107;  /* 黄色 */
+}
+
+.result-fortune.kyo {
+    color: #6c757d;  /* グレー */
+}
+
+.result-fortune.daikyo {
+    color: #343a40;  /* 濃いグレー */
+}
+
+.btn-primary {
+    background-color: #007bff;
+    border-color: #007bff;
+    padding: 10px 30px;
+    font-weight: bold;
+}
+
+.btn-primary:hover {
+    background-color: #0069d9;
+    border-color: #0062cc;
+}
+
+.btn-primary:disabled {
+    background-color: #6c757d;
+    border-color: #6c757d;
+}
+
+@media (max-width: 768px) {
+    .result-item {
+        margin-bottom: 20px;
+    }
+} 
