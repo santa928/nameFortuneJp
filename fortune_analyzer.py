@@ -143,20 +143,21 @@ class FortuneAnalyzer:
             "凶": 40,
             "大凶": 20
         }
-        # 未知の運勢値をチェック
-        unknown_values = [value for value in result.values() if value not in score_map]
-        if unknown_values:
-            logger.warning(f"enamae: 未知の運勢値が検出されました: {unknown_values}")
-            
+        
         scores = []
-        for key, value in result.items():
-            score = score_map.get(value, 0)
-            if score == 0:
-                logger.warning(f"enamae: {key}の値「{value}」のスコアが0になりました")
-            scores.append(score)
+        target_keys = ["天格", "人格", "地格", "外格", "総格", "三才配置"]
+        
+        # 基本運勢のスコア計算
+        for key in target_keys:
+            if key in result:
+                value = result[key]
+                score = score_map.get(value, 0)
+                if score == 0:
+                    logger.warning(f"enamae: {key}の値「{value}」のスコアが0になりました")
+                scores.append(score)
             
         logger.debug(f"enamae raw result: {result}")
-        logger.debug(f"enamae scores: {list(zip(result.keys(), scores))}")
+        logger.debug(f"enamae scores: {list(zip(target_keys, scores))}")
         return sum(scores) / len(scores) if scores else 0
         
     def _calculate_namaeuranai_score(self, result: Dict[str, str]) -> float:
@@ -168,20 +169,21 @@ class FortuneAnalyzer:
             "凶": 40,
             "大凶": 20
         }
-        # 未知の運勢値をチェック
-        unknown_values = [value for value in result.values() if value not in score_map]
-        if unknown_values:
-            logger.warning(f"namaeuranai: 未知の運勢値が検出されました: {unknown_values}")
-            
+        
         scores = []
-        for key, value in result.items():
-            score = score_map.get(value, 0)
-            if score == 0:
-                logger.warning(f"namaeuranai: {key}の値「{value}」のスコアが0になりました")
-            scores.append(score)
+        target_keys = ["天格", "人格", "地格", "外格", "総格", "仕事運", "家庭運"]
+        
+        # 基本運勢のスコア計算
+        for key in target_keys:
+            if key in result:
+                value = result[key]
+                score = score_map.get(value, 0)
+                if score == 0:
+                    logger.warning(f"namaeuranai: {key}の値「{value}」のスコアが0になりました")
+                scores.append(score)
             
         logger.debug(f"namaeuranai raw result: {result}")
-        logger.debug(f"namaeuranai scores: {list(zip(result.keys(), scores))}")
+        logger.debug(f"namaeuranai scores: {list(zip(target_keys, scores))}")
         return sum(scores) / len(scores) if scores else 0
 
     async def save_results(self, results: Dict[str, Any], filename: str = None) -> str:

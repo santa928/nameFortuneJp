@@ -5,11 +5,12 @@ from scraper import NameFortuneScraper
 from bs4 import BeautifulSoup
 import requests
 import urllib3
+from fortune_analyzer import FortuneAnalyzer
 
 # SSL証明書の警告を無効化
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 class TestNameFortuneScraper(unittest.TestCase):
@@ -54,5 +55,40 @@ class TestNameFortuneScraper(unittest.TestCase):
             if next_p:
                 print(f"Found description: {next_p.text}")
 
-if __name__ == "__main__":
+class TestScraperAndScoring(unittest.TestCase):
+    def setUp(self):
+        self.scraper = create_scraper()
+        self.analyzer = FortuneAnalyzer()
+
+    def test_tanaka_taro(self):
+        """田中太郎のケースをテスト"""
+        # スクレイピング結果を取得
+        fortune_result = self.scraper.get_fortune("田中", "太郎", "m")
+        
+        # 結果をログ出力
+        logger.info("=== enamae.net の結果 ===")
+        for key, value in fortune_result["enamae"].items():
+            if not key.endswith("_説明"):
+                logger.info(f"{key}: {value}")
+        
+        logger.info("\n=== namaeuranai.biz の結果 ===")
+        for key, value in fortune_result["namaeuranai"].items():
+            if not key.endswith("_説明"):
+                logger.info(f"{key}: {value}")
+
+        # スコア計算
+        enamae_score = self.analyzer._calculate_enamae_score(fortune_result["enamae"])
+        namaeuranai_score = self.analyzer._calculate_namaeuranai_score(fortune_result["namaeuranai"])
+        total_score = (enamae_score + namaeuranai_score) / 2
+
+        logger.info("\n=== スコア計算結果 ===")
+        logger.info(f"enamae スコア: {enamae_score}")
+        logger.info(f"namaeuranai スコア: {namaeuranai_score}")
+        logger.info(f"総合スコア: {total_score}")
+
+        # スコアが0でないことを確認
+        self.assertGreater(enamae_score, 0, "enamae スコアが0です")
+        self.assertGreater(namaeuranai_score, 0, "namaeuranai スコアが0です")
+
+if __name__ == '__main__':
     unittest.main() 
