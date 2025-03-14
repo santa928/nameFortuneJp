@@ -27,50 +27,6 @@ def index():
     """通常の姓名判断ページを表示"""
     return render_template('index.html')
 
-@app.route('/stroke_list', methods=['GET', 'POST'])
-def stroke_list():
-    """画数別運勢一覧ページを表示"""
-    if request.method == 'POST':
-        try:
-            data = request.get_json()
-            last_name = data.get('last_name', '')
-            
-            if not last_name:
-                return jsonify({'error': '姓を入力してください'}), 400
-            
-            # 1画から20画までの結果を取得
-            results = {}
-            for strokes in range(1, 21):
-                # 画数に対応する文字を使用
-                test_name = get_character_by_strokes(strokes)
-                fortune_result = scraper.get_fortune(last_name, test_name, 'm', stroke_list_mode=True)  # 男性固定
-                
-                if 'error' not in fortune_result:
-                    results[str(strokes)] = {
-                        'test_name': test_name,
-                        'fortune': fortune_result
-                    }
-            
-            # 結果を直接返す
-            return jsonify({
-                'success': True,
-                'results': results,
-                'last_name': last_name
-            })
-        
-        except Exception as e:
-            app.logger.exception("予期せぬエラーが発生しました")
-            return jsonify({'error': str(e)}), 500
-    
-    # GETリクエストの場合は、セッションから結果を取得して表示
-    try:
-        results = session.get('stroke_results', {})
-        last_name = session.get('last_name', '')
-        return render_template('stroke_list.html', results=results, last_name=last_name)
-    except Exception as e:
-        app.logger.exception("予期せぬエラーが発生しました")
-        return render_template('stroke_list.html', error=str(e))
-
 @app.route('/name_generator')
 def name_generator():
     return render_template('name_generator.html')
@@ -105,16 +61,6 @@ def generate():
     except Exception as e:
         app.logger.exception("予期せぬエラーが発生しました")
         return jsonify({'error': f"サーバーエラー: {str(e)}"}), 500
-
-def get_character_by_strokes(strokes):
-    # 画数に対応する文字を返す
-    stroke_characters = {
-        1: '一', 2: '二', 3: '三', 4: '中', 5: '兄',
-        6: '両', 7: '乱', 8: '並', 9: '乗', 10: '俺',
-        11: '停', 12: '博', 13: '働', 14: '僕', 15: '劇',
-        16: '疑', 17: '優', 18: '儲', 19: '爆', 20: '競'
-    }
-    return stroke_characters.get(strokes, '一')
 
 @app.route('/analyze', methods=['POST'])
 def analyze():
