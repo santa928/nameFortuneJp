@@ -39,8 +39,7 @@ cd nameFortuneJp
 2. Dockerコンテナをビルドして起動します：
 
 ```bash
-docker compose build
-docker compose up
+docker compose up --build
 ```
 
 3. ブラウザで以下のURLにアクセスします：

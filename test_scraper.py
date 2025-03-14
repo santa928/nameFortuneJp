@@ -12,28 +12,6 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-def main():
-    scraper = create_scraper()
-    results = scraper.get_fortune("田中", "太郎", "m")
-    
-    logger.info("スクレイピング結果:")
-    if not results:
-        logger.error("結果が空です")
-        exit(1)
-        
-    if "error" in results:
-        logger.error(f"エラー: {results['error']}")
-        exit(1)
-        
-    # 結果を整形して表示
-    fortune_types = ["天格", "人格", "地格", "外格", "総格", "三才配置", "陰陽配列"]
-    for fortune_type in fortune_types:
-        if fortune_type in results:
-            logger.info(f"{fortune_type}: {results[fortune_type]}")
-            if f"{fortune_type}_説明" in results:
-                logger.info(f"説明: {results[f'{fortune_type}_説明']}")
-            logger.info("-" * 50)
-
 class TestNameFortuneScraper(unittest.TestCase):
     def setUp(self):
         self.scraper = NameFortuneScraper()
@@ -77,5 +55,4 @@ class TestNameFortuneScraper(unittest.TestCase):
                 print(f"Found description: {next_p.text}")
 
 if __name__ == "__main__":
-    unittest.main()
-    main() 
+    unittest.main() 

@@ -176,3 +176,4 @@ cython_debug/
 # 追加
 .cursor/
 .specstory/
+.DS_Store

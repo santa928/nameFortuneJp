@@ -1,0 +1,456 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="analyze-strokes-container">
+    <div class="form-container">
+        <h2 class="section-title">画数パターン分析</h2>
+        <p class="description">名字と希望の文字数を入力すると、最適な画数パターンを分析します。</p>
+        
+        <form id="analyzeForm" class="analysis-form">
+            <div class="form-group">
+                <label for="lastName">名字</label>
+                <input type="text" id="lastName" name="lastName" class="form-control" required>
+            </div>
+            
+            <div class="form-group">
+                <label>文字数</label>
+                <div class="char-count-selector">
+                    <label class="radio-label">
+                        <input type="radio" name="charCount" value="1" checked>
+                        <span>1文字</span>
+                    </label>
+                    <label class="radio-label">
+                        <input type="radio" name="charCount" value="2">
+                        <span>2文字</span>
+                    </label>
+                    <label class="radio-label">
+                        <input type="radio" name="charCount" value="3">
+                        <span>3文字</span>
+                    </label>
+                </div>
+            </div>
+            
+            <button type="submit" class="analyze-button">
+                <span class="button-text">分析開始</span>
+                <div class="spinner-border spinner" role="status" style="display: none;">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+            </button>
+        </form>
+    </div>
+
+    <div id="progressContainer" class="progress-container" style="display: none;">
+        <div class="progress">
+            <div class="progress-bar" role="progressbar" style="width: 0%"></div>
+        </div>
+        <p class="progress-text">分析中: <span id="progressPercent">0</span>%</p>
+    </div>
+
+    <div id="errorContainer" class="error-container" style="display: none;">
+        <div class="alert alert-danger" role="alert"></div>
+    </div>
+
+    <div id="resultsContainer" class="results-container" style="display: none;">
+        <div class="results-header">
+            <h3>分析結果 <span id="resultCount"></span></h3>
+            <button id="downloadJson" class="btn btn-outline-primary">
+                <i class="fas fa-download"></i> JSON形式でダウンロード
+            </button>
+        </div>
+        <div id="resultsList" class="results-grid"></div>
+    </div>
+</div>
+
+<style>
+.analyze-strokes-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.section-title {
+    color: #2c3e50;
+    margin-bottom: 1rem;
+    font-weight: 600;
+}
+
+.description {
+    color: #666;
+    margin-bottom: 2rem;
+}
+
+.analysis-form {
+    background: #fff;
+    padding: 2rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.char-count-selector {
+    display: flex;
+    gap: 1.5rem;
+    margin-top: 0.5rem;
+}
+
+.radio-label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: pointer;
+}
+
+.radio-label input[type="radio"] {
+    margin: 0;
+}
+
+.analyze-button {
+    position: relative;
+    width: 100%;
+    padding: 12px;
+    background: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+}
+
+.analyze-button:hover {
+    background: #45a049;
+}
+
+.spinner {
+    width: 1.5rem;
+    height: 1.5rem;
+    color: white;
+}
+
+.progress-container {
+    margin: 2rem 0;
+    padding: 1.5rem;
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.progress {
+    height: 0.5rem;
+    border-radius: 0.25rem;
+    background-color: #e9ecef;
+    overflow: hidden;
+}
+
+.progress-bar {
+    background-color: #4CAF50;
+    transition: width 0.3s ease;
+}
+
+.progress-text {
+    margin-top: 1rem;
+    text-align: center;
+    color: #666;
+}
+
+.results-container {
+    margin-top: 2rem;
+    padding: 2rem;
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.results-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+}
+
+.results-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1.5rem;
+}
+
+.result-card {
+    background: #f8f9fa;
+    border-radius: 8px;
+    padding: 1.5rem;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    transition: transform 0.2s;
+}
+
+.result-card:hover {
+    transform: translateY(-2px);
+}
+
+.result-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 2px solid #4CAF50;
+}
+
+.result-score {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #4CAF50;
+}
+
+.fortune-sections {
+    display: grid;
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+.fortune-section {
+    background: #fff;
+    border-radius: 8px;
+    padding: 1rem;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+
+.fortune-category {
+    font-weight: 600;
+    color: #2c3e50;
+    margin-bottom: 0.5rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.fortune-values {
+    display: grid;
+    gap: 0.5rem;
+}
+
+.fortune-value {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem;
+    background: #f8f9fa;
+    border-radius: 4px;
+}
+
+.fortune-value .source {
+    color: #666;
+    font-size: 0.9rem;
+}
+
+.fortune-value .value {
+    font-weight: 500;
+    color: #2c3e50;
+}
+
+.progress-container {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 80%;
+    max-width: 500px;
+    z-index: 1000;
+    background: rgba(255, 255, 255, 0.95);
+    padding: 2rem;
+    border-radius: 12px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.progress {
+    height: 0.75rem;
+}
+
+.progress-text {
+    font-size: 1.1rem;
+    margin-top: 1rem;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('analyzeForm');
+    const progressContainer = document.getElementById('progressContainer');
+    const progressBar = document.querySelector('.progress-bar');
+    const progressText = document.getElementById('progressPercent');
+    const errorContainer = document.getElementById('errorContainer');
+    const resultsContainer = document.getElementById('resultsContainer');
+    const resultsList = document.getElementById('resultsList');
+    const downloadButton = document.getElementById('downloadJson');
+    let analysisResults = null;
+
+    form.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        const lastName = document.getElementById('lastName').value;
+        const charCount = document.querySelector('input[name="charCount"]:checked').value;
+        
+        // UIをリセット
+        errorContainer.style.display = 'none';
+        resultsContainer.style.display = 'none';
+        progressContainer.style.display = 'block';
+        progressBar.style.width = '0%';
+        progressText.textContent = '0';
+        
+        // ボタンの状態を更新
+        const button = form.querySelector('button[type="submit"]');
+        const buttonText = button.querySelector('.button-text');
+        const spinner = button.querySelector('.spinner');
+        buttonText.textContent = '分析中...';
+        spinner.style.display = 'inline-block';
+        button.disabled = true;
+
+        try {
+            startProgressMonitoring();
+            const response = await fetch('/analyze_strokes', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    last_name: lastName,
+                    char_count: parseInt(charCount)
+                })
+            });
+
+            if (!response.ok) {
+                throw new Error(await response.text());
+            }
+
+            const data = await response.json();
+            analysisResults = data.results;
+            
+            if (data.success) {
+                displayResults(data.results);
+                resultsContainer.style.display = 'block';
+            } else {
+                throw new Error(data.error || '分析中にエラーが発生しました');
+            }
+        } catch (error) {
+            errorContainer.querySelector('.alert').textContent = error.message;
+            errorContainer.style.display = 'block';
+        } finally {
+            if (eventSource) {
+                eventSource.close();
+            }
+            progressContainer.style.display = 'none';
+            buttonText.textContent = '分析開始';
+            spinner.style.display = 'none';
+            button.disabled = false;
+        }
+    });
+
+    function displayResults(results) {
+        resultsList.innerHTML = '';
+        document.getElementById('resultCount').textContent = 
+            `(上位${results.top_results.length}件 / 全${results.total_patterns}パターン)`;
+
+        results.top_results.forEach((result, index) => {
+            const card = document.createElement('div');
+            card.className = 'result-card';
+
+            // 運勢結果をまとめる
+            const fortuneCategories = {};
+            
+            // enamae.netの結果を処理
+            Object.entries(result.enamae_result).forEach(([category, value]) => {
+                if (!fortuneCategories[category]) {
+                    fortuneCategories[category] = {
+                        enamae: value,
+                        namaeuranai: null
+                    };
+                }
+            });
+            
+            // namaeuranai.bizの結果を処理
+            Object.entries(result.namaeuranai_result).forEach(([category, value]) => {
+                if (!fortuneCategories[category]) {
+                    fortuneCategories[category] = {
+                        enamae: null,
+                        namaeuranai: value
+                    };
+                } else {
+                    fortuneCategories[category].namaeuranai = value;
+                }
+            });
+
+            // 結果をHTML形式で表示
+            card.innerHTML = `
+                <div class="result-header">
+                    <div class="result-rank">第${index + 1}位</div>
+                    <div class="result-score">${Math.round(result.total_score)}点</div>
+                </div>
+                <div class="result-name">
+                    <strong>画数:</strong> ${result.strokes.join(' ')}
+                    <br>
+                    <strong>文字:</strong> ${result.characters}
+                </div>
+                <div class="fortune-sections">
+                    ${Object.entries(fortuneCategories).map(([category, values]) => `
+                        <div class="fortune-section">
+                            <div class="fortune-category">${category}</div>
+                            <div class="fortune-values">
+                                ${values.enamae ? `
+                                    <div class="fortune-value">
+                                        <span class="source">enamae.net:</span>
+                                        <span class="value">${values.enamae}</span>
+                                    </div>
+                                ` : ''}
+                                ${values.namaeuranai ? `
+                                    <div class="fortune-value">
+                                        <span class="source">namaeuranai.biz:</span>
+                                        <span class="value">${values.namaeuranai}</span>
+                                    </div>
+                                ` : ''}
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+            resultsList.appendChild(card);
+        });
+    }
+
+    downloadButton.addEventListener('click', function() {
+        if (!analysisResults) return;
+        
+        const blob = new Blob([JSON.stringify(analysisResults, null, 2)], {type: 'application/json'});
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `fortune_analysis_${analysisResults.last_name}_${analysisResults.char_count}字.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    });
+
+    let eventSource = null;
+
+    async function startProgressMonitoring() {
+        if (eventSource) {
+            eventSource.close();
+        }
+
+        eventSource = new EventSource('/analyze_progress');
+        
+        eventSource.onmessage = function(event) {
+            const data = JSON.parse(event.data);
+            const progress = data.progress;
+            progressBar.style.width = `${progress}%`;
+            progressText.textContent = Math.round(progress);
+        };
+
+        eventSource.onerror = function() {
+            eventSource.close();
+        };
+    }
+});
+</script>
+{% endblock %} 

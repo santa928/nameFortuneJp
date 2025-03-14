@@ -1,233 +1,126 @@
-<!DOCTYPE html>
-<html lang="ja">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>姓名判断</title>
-    <style>
-        body {
-            font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif;
-            line-height: 1.6;
-            margin: 0;
-            padding: 20px;
-            background-color: #f5f5f5;
-        }
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 20px;
-            background-color: #fff;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-        h1 {
-            text-align: center;
-            color: #333;
-            margin-bottom: 30px;
-        }
-        .form-container {
-            max-width: 600px;
-            margin: 0 auto;
-            padding: 20px;
-            background-color: #f9f9f9;
-            border-radius: 8px;
-        }
-        .form-group {
-            margin-bottom: 15px;
-        }
-        label {
-            display: block;
-            margin-bottom: 5px;
-            color: #666;
-        }
-        input[type="text"] {
-            width: 100%;
-            padding: 8px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            font-size: 16px;
-        }
-        .radio-group {
-            margin: 10px 0;
-        }
-        button {
-            display: block;
-            width: 100%;
-            padding: 10px;
-            background-color: #4CAF50;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            font-size: 16px;
-            cursor: pointer;
-        }
-        button:hover {
-            background-color: #45a049;
-        }
-        .results {
-            margin-top: 30px;
-            display: flex;
-            gap: 20px;
-        }
-        .result-column {
-            flex: 1;
-            padding: 20px;
-            background-color: #fff;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-        .result-box {
-            margin-bottom: 20px;
-            padding: 15px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-        }
-        .fortune-title {
-            font-weight: bold;
-            color: #333;
-            margin-bottom: 10px;
-        }
-        .fortune-result {
-            color: #e91e63;
-            font-size: 1.2em;
-            margin-bottom: 10px;
-        }
-        .fortune-description {
-            color: #666;
-        }
-        .error {
-            color: #f44336;
-            text-align: center;
-            margin: 20px 0;
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <h1>姓名判断</h1>
-        
-        <div class="form-container">
-            <div class="form-group">
-                <label for="lastName">姓</label>
-                <input type="text" id="lastName" placeholder="例：田中">
-            </div>
-            
-            <div class="form-group">
-                <label for="firstName">名</label>
-                <input type="text" id="firstName" placeholder="例：太郎">
-            </div>
-            
-            <div class="radio-group">
-                <label>
-                    <input type="radio" name="gender" value="m" checked> 男性
-                </label>
-                <label>
-                    <input type="radio" name="gender" value="f"> 女性
-                </label>
-            </div>
-            
-            <button onclick="analyzeName()">占う</button>
-        </div>
+{% extends "base.html" %}
 
-        <div class="results" id="results" style="display: none;">
-            <div class="result-column">
-                <h2>enamae.net の結果</h2>
-                <div id="enamaeResults"></div>
-            </div>
-            
-            <div class="result-column">
-                <h2>姓名判断 彩 の結果</h2>
-                <div id="namaeuranaiResults"></div>
-            </div>
-        </div>
+{% block content %}
+<div class="form-container">
+    <div class="form-group">
+        <label for="lastName">姓</label>
+        <input type="text" id="lastName" placeholder="例：田中">
     </div>
+    
+    <div class="form-group">
+        <label for="firstName">名</label>
+        <input type="text" id="firstName" placeholder="例：太郎">
+    </div>
+    
+    <div class="radio-group">
+        <label>
+            <input type="radio" name="gender" value="m" checked> 男性
+        </label>
+        <label>
+            <input type="radio" name="gender" value="f"> 女性
+        </label>
+    </div>
+    
+    <button onclick="analyzeName()">占う</button>
+</div>
 
-    <script>
-        // 結果の表示順序を定義
-        const COMMON_KEYS = ["天格", "人格", "地格", "外格", "総格"];
-        const ENAMAE_ONLY_KEYS = ["三才配置", "陰陽配列"];
-        const NAMAEURANAI_ONLY_KEYS = ["仕事運", "家庭運"];
+<div class="results" id="results" style="display: none;">
+    <div class="result-column">
+        <h2>enamae.net の結果</h2>
+        <div id="enamaeResults"></div>
+    </div>
+    
+    <div class="result-column">
+        <h2>姓名判断 彩 の結果</h2>
+        <div id="namaeuranaiResults"></div>
+    </div>
+</div>
 
-        function displayResults(container, data, siteSpecificKeys) {
-            container.innerHTML = '';
-            
-            // 共通項目を先に表示
-            COMMON_KEYS.forEach(key => {
-                if (data[key]) {
-                    const resultBox = document.createElement('div');
-                    resultBox.className = 'result-box';
-                    resultBox.innerHTML = `
-                        <div class="fortune-title">${key}</div>
-                        <div class="fortune-result">${data[key]}</div>
-                        <div class="fortune-description">${data[key + '_説明'] || ''}</div>
-                    `;
-                    container.appendChild(resultBox);
-                }
-            });
+<script>
+    // 結果の表示順序を定義
+    const COMMON_KEYS = ["天格", "人格", "地格", "外格", "総格"];
+    const ENAMAE_ONLY_KEYS = ["三才配置", "陰陽配列"];
+    const NAMAEURANAI_ONLY_KEYS = ["仕事運", "家庭運"];
 
-            // サイト固有の項目を後で表示
-            siteSpecificKeys.forEach(key => {
-                if (data[key]) {
-                    const resultBox = document.createElement('div');
-                    resultBox.className = 'result-box';
-                    resultBox.innerHTML = `
-                        <div class="fortune-title">${key}</div>
-                        <div class="fortune-result">${data[key]}</div>
-                        <div class="fortune-description">${data[key + '_説明'] || ''}</div>
-                    `;
-                    container.appendChild(resultBox);
-                }
-            });
+    function displayResults(container, data, siteSpecificKeys) {
+        container.innerHTML = '';
+        
+        // 共通項目を先に表示
+        COMMON_KEYS.forEach(key => {
+            if (data[key]) {
+                const resultBox = document.createElement('div');
+                resultBox.className = 'result-box';
+                resultBox.innerHTML = `
+                    <div class="fortune-title">${key}</div>
+                    <div class="fortune-result">${data[key]}</div>
+                    <div class="fortune-description">${data[key + '_説明'] || ''}</div>
+                `;
+                container.appendChild(resultBox);
+            }
+        });
+
+        // サイト固有の項目を後で表示
+        siteSpecificKeys.forEach(key => {
+            if (data[key]) {
+                const resultBox = document.createElement('div');
+                resultBox.className = 'result-box';
+                resultBox.innerHTML = `
+                    <div class="fortune-title">${key}</div>
+                    <div class="fortune-result">${data[key]}</div>
+                    <div class="fortune-description">${data[key + '_説明'] || ''}</div>
+                `;
+                container.appendChild(resultBox);
+            }
+        });
+    }
+
+    function analyzeName() {
+        const lastName = document.getElementById('lastName').value;
+        const firstName = document.getElementById('firstName').value;
+        const gender = document.querySelector('input[name="gender"]:checked').value;
+
+        if (!lastName || !firstName) {
+            alert('姓名を入力してください');
+            return;
         }
 
-        function analyzeName() {
-            const lastName = document.getElementById('lastName').value;
-            const firstName = document.getElementById('firstName').value;
-            const gender = document.querySelector('input[name="gender"]:checked').value;
-
-            if (!lastName || !firstName) {
-                alert('姓名を入力してください');
-                return;
+        fetch('/analyze', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                last_name: lastName,
+                first_name: firstName,
+                gender: gender
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById('results').style.display = 'flex';
+            
+            // enamae.netの結果を表示
+            if (data.enamae) {
+                displayResults(
+                    document.getElementById('enamaeResults'),
+                    data.enamae,
+                    ENAMAE_ONLY_KEYS
+                );
             }
 
-            fetch('/analyze', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    last_name: lastName,
-                    first_name: firstName,
-                    gender: gender
-                })
-            })
-            .then(response => response.json())
-            .then(data => {
-                document.getElementById('results').style.display = 'flex';
-                
-                // enamae.netの結果を表示
-                if (data.enamae) {
-                    displayResults(
-                        document.getElementById('enamaeResults'),
-                        data.enamae,
-                        ENAMAE_ONLY_KEYS
-                    );
-                }
-
-                // namaeuranai.bizの結果を表示
-                if (data.namaeuranai) {
-                    displayResults(
-                        document.getElementById('namaeuranaiResults'),
-                        data.namaeuranai,
-                        NAMAEURANAI_ONLY_KEYS
-                    );
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                alert('エラーが発生しました');
-            });
-        }
-    </script>
-</body>
-</html> 
+            // namaeuranai.bizの結果を表示
+            if (data.namaeuranai) {
+                displayResults(
+                    document.getElementById('namaeuranaiResults'),
+                    data.namaeuranai,
+                    NAMAEURANAI_ONLY_KEYS
+                );
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('エラーが発生しました');
+        });
+    }
+</script>
+{% endblock %} 

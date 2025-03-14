@@ -1,11 +1,21 @@
+version: '3'
+
 services:
   web:
     build: .
     ports:
-      - "8080:5000"
+      - "5001:5000"
     volumes:
       - .:/app
+      - static_data:/app/static
+      - analysis_results:/app/analysis_results
     environment:
       - FLASK_APP=app.py
       - FLASK_ENV=development
-      - FLASK_DEBUG=1 
+      - PYTHONUNBUFFERED=1
+    command: python app.py
+    restart: unless-stopped
+
+volumes:
+  static_data:
+  analysis_results: 

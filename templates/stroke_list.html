@@ -1,0 +1,181 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="form-container">
+    <div class="form-group">
+        <label for="lastName">姓</label>
+        <input type="text" id="lastName" placeholder="例：田中" value="{{ last_name }}">
+    </div>
+    <button onclick="analyzeStrokes()">分析開始</button>
+</div>
+
+<div id="loading" class="loading">
+    分析中です...しばらくお待ちください。
+</div>
+
+{% if error %}
+<div class="error">
+    エラーが発生しました: {{ error }}
+</div>
+{% endif %}
+
+{% if results %}
+<h2 style="text-align: center; margin-bottom: 20px;">{{ last_name }}さんの画数別運勢一覧</h2>
+<div class="stroke-results">
+    {% for strokes, data in results.items() %}
+    <div class="stroke-card">
+        <div class="stroke-header">
+            {{ strokes }}画（テスト名：{{ data.test_name }}）
+        </div>
+        
+        {% if data.fortune.enamae %}
+        <div class="fortune-box">
+            <div class="fortune-title">enamae.net の結果</div>
+            {% for key, value in data.fortune.enamae.items() %}
+                {% if not key.endswith('_説明') %}
+                <div class="fortune-result">{{ key }}: {{ value }}</div>
+                <div class="fortune-description">{{ data.fortune.enamae[key + '_説明'] }}</div>
+                {% endif %}
+            {% endfor %}
+        </div>
+        {% endif %}
+        
+        {% if data.fortune.namaeuranai %}
+        <div class="fortune-box">
+            <div class="fortune-title">namaeuranai.biz の結果</div>
+            {% for key, value in data.fortune.namaeuranai.items() %}
+                {% if not key.endswith('_説明') %}
+                <div class="fortune-result">{{ key }}: {{ value }}</div>
+                <div class="fortune-description">{{ data.fortune.namaeuranai[key + '_説明'] }}</div>
+                {% endif %}
+            {% endfor %}
+        </div>
+        {% endif %}
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+<script>
+function analyzeStrokes() {
+    const lastName = document.getElementById('lastName').value;
+    if (!lastName) {
+        alert('姓を入力してください');
+        return;
+    }
+
+    document.getElementById('loading').style.display = 'block';
+    
+    fetch('/stroke_list', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            last_name: lastName
+        })
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (data.error) {
+            throw new Error(data.error);
+        }
+        
+        // コンテナを取得
+        const container = document.querySelector('.container');
+        if (!container) {
+            throw new Error('Container element not found');
+        }
+
+        // 既存のタイトルと結果を削除
+        const existingTitle = container.querySelector('h2');
+        if (existingTitle) {
+            existingTitle.remove();
+        }
+
+        const existingResults = container.querySelector('.stroke-results');
+        if (existingResults) {
+            existingResults.remove();
+        }
+
+        // 新しいタイトルを作成
+        const title = document.createElement('h2');
+        title.style.textAlign = 'center';
+        title.style.marginBottom = '20px';
+        title.textContent = `${data.last_name}さんの画数別運勢一覧`;
+        container.appendChild(title);
+
+        // 新しい結果コンテナを作成
+        const resultsContainer = document.createElement('div');
+        resultsContainer.className = 'stroke-results';
+        container.appendChild(resultsContainer);
+
+        // 結果がない場合
+        if (!data.results || Object.keys(data.results).length === 0) {
+            resultsContainer.innerHTML = '<div class="error">結果が見つかりませんでした。</div>';
+            return;
+        }
+
+        // 結果を表示
+        const cardsHTML = Object.entries(data.results)
+            .filter(([_, result]) => result && result.fortune)
+            .map(([strokes, result]) => {
+                let cardContent = `
+                    <div class="stroke-card">
+                        <div class="stroke-header">
+                            ${strokes}画（テスト名：${result.test_name || '不明'}）
+                        </div>`;
+                
+                if (result.fortune.enamae) {
+                    cardContent += `
+                    <div class="fortune-box">
+                        <div class="fortune-title">enamae.net の結果</div>`;
+                    
+                    Object.entries(result.fortune.enamae)
+                        .filter(([key]) => !key.endsWith('_説明'))
+                        .forEach(([key, value]) => {
+                            cardContent += `
+                                <div class="fortune-result">${key}: ${value}</div>
+                                <div class="fortune-description">${result.fortune.enamae[key + '_説明'] || ''}</div>`;
+                        });
+                    
+                    cardContent += `</div>`;
+                }
+                
+                if (result.fortune.namaeuranai) {
+                    cardContent += `
+                    <div class="fortune-box">
+                        <div class="fortune-title">namaeuranai.biz の結果</div>`;
+                    
+                    Object.entries(result.fortune.namaeuranai)
+                        .filter(([key]) => !key.endsWith('_説明'))
+                        .forEach(([key, value]) => {
+                            cardContent += `
+                                <div class="fortune-result">${key}: ${value}</div>
+                                <div class="fortune-description">${result.fortune.namaeuranai[key + '_説明'] || ''}</div>`;
+                        });
+                    
+                    cardContent += `</div>`;
+                }
+                
+                cardContent += `</div>`;
+                return cardContent;
+            }).join('');
+        
+        resultsContainer.innerHTML = cardsHTML;
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('エラーが発生しました: ' + error.message);
+    })
+    .finally(() => {
+        document.getElementById('loading').style.display = 'none';
+    });
+}
+</script>
+{% endblock %} 
