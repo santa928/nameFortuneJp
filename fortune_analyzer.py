@@ -109,8 +109,8 @@ class FortuneAnalyzer:
                 
         results = await asyncio.gather(*tasks)
         
-        # スコアで降順ソートして上位10件を取得
-        sorted_results = sorted(results, key=lambda x: x["total_score"], reverse=True)[:10]
+        # スコアで降順ソートして上位20件を取得
+        sorted_results = sorted(results, key=lambda x: x["total_score"], reverse=True)[:20]
         
         return {
             "generated_at": datetime.now().isoformat(),
@@ -139,9 +139,9 @@ class FortuneAnalyzer:
             "大吉": 100,
             "吉": 80,
             "特殊格": 90,
-            "吉凶混合": 60,
-            "凶": 40,
-            "大凶": 20
+            "吉凶混合": -300,
+            "凶": -500,
+            "大凶": -1000
         }
         
         scores = []
@@ -166,8 +166,8 @@ class FortuneAnalyzer:
             "大大吉": 100,
             "大吉": 90,
             "吉": 80,
-            "凶": 40,
-            "大凶": 20
+            "凶": -500,
+            "大凶": -1000
         }
         
         scores = []
