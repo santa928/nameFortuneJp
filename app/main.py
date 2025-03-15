@@ -1,14 +1,18 @@
-from flask import Flask, render_template, request, jsonify, session, Response
-import logging
-from app.core.scraper import create_scraper
-import json
-from typing import Dict, List
-from app.core.fortune_analyzer import FortuneAnalyzer, get_character_by_strokes
+# 標準ライブラリ
 import asyncio
+import json
+import logging
 import os
-import queue
 import threading
+from typing import Dict, List
+
+# サードパーティライブラリ
+from flask import Flask, render_template, request, jsonify
 from werkzeug.serving import WSGIRequestHandler
+
+# ローカルアプリケーション
+from app.core.scraper import create_scraper
+from app.core.fortune_analyzer import FortuneAnalyzer, get_character_by_strokes
 from app.core.request_context import copy_current_request_context
 
 # タイムアウトを60分に設定

@@ -1,11 +1,10 @@
 import logging
-from app.core.scraper import create_scraper, Scraper
+from app.core.scraper import create_scraper, Scraper, NameFortuneScraper
 import unittest
-from scraper import NameFortuneScraper
 from bs4 import BeautifulSoup
 import requests
 import urllib3
-from fortune_analyzer import FortuneAnalyzer
+from app.core.fortune_analyzer import FortuneAnalyzer
 
 # SSL証明書の警告を無効化
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
@@ -31,13 +30,13 @@ class TestNameFortuneScraper(unittest.TestCase):
         for box in result_boxes:
             title = box.find('h3', class_='title01')
             if title:
-                print(f"Found title: {title.text}")
+                logger.info(f"Found title: {title.text}")
                 fortune = box.find('span', class_='f-large')
                 if fortune:
-                    print(f"Found fortune: {fortune.text}")
+                    logger.info(f"Found fortune: {fortune.text}")
                 description = box.find('p', class_='text02')
                 if description:
-                    print(f"Found description: {description.text}")
+                    logger.info(f"Found description: {description.text}")
 
     def test_enamae_scraping(self):
         """enamae.netのスクレイピングテスト"""
@@ -50,10 +49,10 @@ class TestNameFortuneScraper(unittest.TestCase):
         self.assertGreater(len(h2_tags), 0, "h2タグが見つかりません")
         
         for h2 in h2_tags:
-            print(f"Found h2: {h2.text}")
+            logger.info(f"Found h2: {h2.text}")
             next_p = h2.find_next('p')
             if next_p:
-                print(f"Found description: {next_p.text}")
+                logger.info(f"Found description: {next_p.text}")
 
 class TestScraperAndScoring(unittest.TestCase):
     def setUp(self):
