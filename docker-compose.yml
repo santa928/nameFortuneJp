@@ -7,13 +7,13 @@ services:
       - "5001:5000"
     volumes:
       - .:/app
-      - static_data:/app/static
+      - static_data:/app/app/static
       - analysis_results:/app/analysis_results
     environment:
-      - FLASK_APP=app.py
+      - FLASK_APP=app.main
       - FLASK_ENV=development
       - PYTHONUNBUFFERED=1
-    command: python app.py
+    command: python -m app.main
     restart: unless-stopped
 
 volumes:

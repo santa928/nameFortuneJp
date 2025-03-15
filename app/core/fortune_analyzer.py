@@ -2,9 +2,8 @@ import asyncio
 import json
 from datetime import datetime
 from typing import List, Dict, Any
-from scraper import create_scraper
+from app.core.scraper import create_scraper
 import logging
-from analyze_fortune_patterns import get_character_by_strokes
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)

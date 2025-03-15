@@ -1,5 +1,5 @@
 import logging
-from scraper import create_scraper
+from app.core.scraper import create_scraper, Scraper
 import unittest
 from scraper import NameFortuneScraper
 from bs4 import BeautifulSoup

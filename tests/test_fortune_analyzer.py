@@ -1,5 +1,5 @@
 import unittest
-from fortune_analyzer import FortuneAnalyzer
+from app.core.fortune_analyzer import FortuneAnalyzer, get_character_by_strokes
 
 class TestFortuneAnalyzer(unittest.TestCase):
     def setUp(self):

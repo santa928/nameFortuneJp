@@ -1,15 +1,15 @@
 from flask import Flask, render_template, request, jsonify, session, Response
 import logging
-from scraper import create_scraper
+from app.core.scraper import create_scraper
 import json
 from typing import Dict, List
-from fortune_analyzer import FortuneAnalyzer, get_character_by_strokes
+from app.core.fortune_analyzer import FortuneAnalyzer, get_character_by_strokes
 import asyncio
 import os
 import queue
 import threading
 from werkzeug.serving import WSGIRequestHandler
-from flask_request_context import copy_current_request_context
+from app.core.request_context import copy_current_request_context
 
 # タイムアウトを60分に設定
 WSGIRequestHandler.protocol_version = "HTTP/1.1"
@@ -26,7 +26,7 @@ analysis_progress = {}
 
 def load_fortune_types() -> Dict[str, List[str]]:
     """運勢タイプのJSONファイルを読み込む"""
-    with open('fortune_types.json', 'r', encoding='utf-8') as f:
+    with open('app/config/fortune_types.json', 'r', encoding='utf-8') as f:
         return json.load(f)
 
 @app.route('/')

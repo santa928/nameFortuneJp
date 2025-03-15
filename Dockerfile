@@ -1,4 +1,4 @@
-FROM python:3.9
+FROM python:3.9-slim
 
 WORKDIR /app
 
@@ -11,8 +11,8 @@ RUN apt-get update && apt-get install -y \
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# アプリケーションのコードをコピー
-COPY . .
+COPY app/ ./app/
+COPY tests/ ./tests/
 
 # 静的ファイル用のディレクトリを作成
 RUN mkdir -p /app/static
@@ -21,4 +21,4 @@ RUN mkdir -p /app/static
 EXPOSE 5000
 
 # アプリケーションを実行
-CMD ["python", "app.py"] 
+CMD ["python", "-m", "app.main"] 
