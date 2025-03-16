@@ -52,12 +52,6 @@ git clone https://github.com/yourusername/nameFortuneJp.git
 cd nameFortuneJp
 ```
 
-2. 環境変数の設定
-```bash
-cp .env.example .env
-# .envファイルを編集して必要な設定を行う
-```
-
 3. Dockerコンテナの起動
 ```bash
 docker-compose up -d
