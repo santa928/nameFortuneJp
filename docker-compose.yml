@@ -8,7 +8,6 @@ services:
     volumes:
       - .:/app
       - static_data:/app/app/static
-      - analysis_results:/app/analysis_results
     environment:
       - FLASK_APP=app.main
       - FLASK_ENV=development
@@ -18,4 +17,3 @@ services:
 
 volumes:
   static_data:
-  analysis_results: 

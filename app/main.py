@@ -13,7 +13,6 @@ from werkzeug.serving import WSGIRequestHandler
 # ローカルアプリケーション
 from app.core.scraper import create_scraper
 from app.core.fortune_analyzer import FortuneAnalyzer, get_character_by_strokes
-from app.core.request_context import copy_current_request_context
 
 # タイムアウトを60分に設定
 WSGIRequestHandler.protocol_version = "HTTP/1.1"
