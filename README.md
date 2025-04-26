@@ -75,3 +75,37 @@ docker-compose up -d
    - 進捗状況を確認しながら結果を待つ
    - 総合スコアの高い順に上位20件の結果を表示
 
+### 3. 画数指定による名前候補生成 (New!)
+
+1. 「名前生成」メニューを選択
+2. 名字、性別、各文字の画数を入力
+3. 「生成」ボタンをクリック
+4. 条件に合致する漢字の名前候補（最大50件）が表示
+5. CSV ダウンロードボタンで結果を CSV ファイルとして保存
+
+## データベースへの名前候補データ投入 (CLI)
+
+新機能用の名前候補データを「赤ちゃん命名ガイド」からスクレイピングして SQLite データベースに登録するには、以下の CLI スクリプトを実行します。
+
+```bash
+# コンテナを起動中に、別ターミナルで実行
+docker-compose exec web python ingest_runner.py \
+    --chars 2 \
+    --strokes1 8 \
+    --strokes2 3 \
+    --gender male
+```
+
+- `--chars`: 名前の文字数 (1, 2, 3)
+- `--strokes1`: 1文字目の画数
+- `--strokes2`: 2文字目の画数（`--chars` が2以上の場合必須）
+- `--strokes3`: 3文字目の画数（`--chars` が3の場合必須）
+- `--gender`: 性別 (`male` または `female`)
+
+初回投入や定期的なバッチ実行で、さまざまな画数パターン・性別パターンを指定してデータを蓄積してください。
+
+```bash
+# 例: 1文字 + 女性データを投入
+docker-compose exec web python ingest_runner.py --chars 1 --strokes1 5 --gender female
+```
+

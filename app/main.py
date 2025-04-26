@@ -13,6 +13,8 @@ from werkzeug.serving import WSGIRequestHandler
 # ローカルアプリケーション
 from app.core.scraper import create_scraper
 from app.core.fortune_analyzer import FortuneAnalyzer, get_character_by_strokes
+from app.core.name_generator import init_db, get_name_candidates
+from app.core.ingest import ingest_pattern
 
 # タイムアウトを60分に設定
 WSGIRequestHandler.protocol_version = "HTTP/1.1"
@@ -26,6 +28,11 @@ scraper = create_scraper()
 
 # プログレス情報を保持するグローバル変数
 analysis_progress = {}
+# スクレイピング用進捗情報を保持するグローバル変数
+scraping_progress = {}
+
+# 名前候補データベース初期化
+init_db()
 
 def load_fortune_types() -> Dict[str, List[str]]:
     """運勢タイプのJSONファイルを読み込む"""
@@ -196,6 +203,76 @@ async def analyze_strokes():
             return jsonify({'error': str(e)}), 500
     
     return render_template('analyze_strokes.html')
+
+@app.route('/api/v1/name_candidates', methods=['GET'])
+def name_candidates_api():
+    """指定された画数・文字数・性別に合致する名前候補を返すAPI"""
+    try:
+        # パラメータ取得
+        chars = request.args.get('chars', type=int)
+        strokes1 = request.args.get('strokes1', type=int)
+        strokes2 = request.args.get('strokes2', type=int)
+        strokes3 = request.args.get('strokes3', type=int)
+        gender = request.args.get('gender', type=str)
+
+        # バリデーション
+        if chars not in (1, 2, 3):
+            return jsonify({'error': '文字数は1,2,3のいずれかを指定してください'}), 400
+        if strokes1 is None:
+            return jsonify({'error': '1文字目の画数を指定してください'}), 400
+        if chars >= 2 and strokes2 is None:
+            return jsonify({'error': '2文字目の画数を指定してください'}), 400
+        if chars >= 3 and strokes3 is None:
+            return jsonify({'error': '3文字目の画数を指定してください'}), 400
+
+        # データベース検索
+        candidates = get_name_candidates(
+            chars=chars,
+            strokes1=strokes1,
+            strokes2=strokes2,
+            strokes3=strokes3,
+            gender=gender
+        )
+        # DBにデータがあれば即時返却
+        if candidates:
+            return jsonify({'candidates': candidates, 'count': len(candidates)})
+        # データがなければバックグラウンドでスクレイピング実行
+        job_id = f"{chars}_{strokes1}_{strokes2}_{strokes3}_{gender}"
+        scraping_progress[job_id] = {'progress': 0, 'status': 'running'}
+        def run_scraping():
+            try:
+                # データ投入
+                ingest_pattern(
+                    chars=chars,
+                    strokes1=strokes1,
+                    strokes2=strokes2,
+                    strokes3=strokes3,
+                    gender=gender
+                )
+                # スクレイピング後のDB検索
+                new_cands = get_name_candidates(
+                    chars=chars,
+                    strokes1=strokes1,
+                    strokes2=strokes2,
+                    strokes3=strokes3,
+                    gender=gender
+                )
+                scraping_progress[job_id] = {'progress': 100, 'status': 'complete', 'candidates': new_cands}
+            except Exception as e:
+                scraping_progress[job_id] = {'progress': -1, 'status': 'error', 'error': str(e)}
+        thread = threading.Thread(target=run_scraping)
+        thread.daemon = True
+        thread.start()
+        return jsonify({'scraping': True, 'job_id': job_id}), 202
+    except Exception as e:
+        app.logger.exception('名前候補生成APIでエラーが発生しました')
+        return jsonify({'error': f'サーバーエラー: {str(e)}'}), 500
+
+@app.route('/api/v1/name_candidates_progress/<job_id>')
+def name_candidates_progress(job_id):
+    """バックグラウンドスクレイピングの進捗を返却するAPI"""
+    progress = scraping_progress.get(job_id, {})
+    return jsonify(progress)
 
 if __name__ == '__main__':
     # デバッグモードを有効にし、タイムアウトを60分に設定
