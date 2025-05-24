@@ -1,9 +1,10 @@
-import time
+import os
 import sqlite3
+import time
+from typing import Optional
+
 import requests
 from bs4 import BeautifulSoup
-import os
-from typing import List, Optional
 
 # 名前データベースのパス
 DB_PATH = os.getenv('NAME_DB_PATH', 'names.db')
@@ -37,7 +38,8 @@ def ingest_pattern(
 
     # 初期文字選択ページを取得し、div.malenamelist_boxから文字リンクを抽出
     print(f"[Debug] base_url: {base_url}")
-    resp = requests.get(base_url)
+    # セキュリティ強化：タイムアウト設定
+    resp = requests.get(base_url, timeout=30)
     soup = BeautifulSoup(resp.text, 'html.parser')
     # テーブル形式の名前リストがあれば優先して取得
     rows = soup.select('div.namelist.jikakuListBox table tbody tr')
@@ -46,24 +48,26 @@ def ingest_pattern(
         for row in rows:
             name_tag = row.select_one('td.cell-name span')
             yomi_tag = row.select_one('td.cell-yomi span')
-            detail_href = row.select_one('td.cell-name a').get('href')
-            name = name_tag.get_text(strip=True) if name_tag else ''
-            yomi = yomi_tag.get_text(strip=True) if yomi_tag else ''
-            source_url = 'https://b-name.jp' + detail_href
-            total = sum(strokes_list)
-            try:
-                cur.execute(
-                    "INSERT OR IGNORE INTO names(name, yomi, chars, strokes_1, strokes_2, strokes_3, total_strokes, gender, source_url) VALUES(?,?,?,?,?,?,?,?,?)",
-                    (name, yomi, chars,
-                     strokes_list[0],
-                     strokes_list[1] if chars >= 2 else None,
-                     strokes_list[2] if chars == 3 else None,
-                     total, gender, source_url)
-                )
-                conn.commit()
-            except Exception:
-                conn.rollback()
-            time.sleep(0.5)
+            detail_link = row.select_one('td.cell-name a')
+            if detail_link:
+                detail_href = detail_link.get('href')
+                name = name_tag.get_text(strip=True) if name_tag else ''
+                yomi = yomi_tag.get_text(strip=True) if yomi_tag else ''
+                source_url = 'https://b-name.jp' + detail_href
+                total = sum(s for s in strokes_list if s is not None)
+                try:
+                    cur.execute(
+                        "INSERT OR IGNORE INTO names(name, yomi, chars, strokes_1, strokes_2, strokes_3, total_strokes, gender, source_url) VALUES(?,?,?,?,?,?,?,?,?)",
+                        (name, yomi, chars,
+                         strokes_list[0],
+                         strokes_list[1] if chars >= 2 else None,
+                         strokes_list[2] if chars == 3 else None,
+                         total, gender, source_url)
+                    )
+                    conn.commit()
+                except Exception:
+                    conn.rollback()
+                time.sleep(0.5)
         conn.close()
         return
     # fallback: 文字別リンク方式（男性／その他ケース）
@@ -73,7 +77,8 @@ def ingest_pattern(
     for link in letter_links:
         page_url = 'https://b-name.jp' + link
         print(f"[Debug] fetching letter page: {page_url}")
-        r2 = requests.get(page_url)
+        # セキュリティ強化：タイムアウト設定
+        r2 = requests.get(page_url, timeout=30)
         s2 = BeautifulSoup(r2.text, 'html.parser')
         name_links = s2.select('div.malenamelist_box ul.ml-box li a')
         print(f"[Debug] found {len(name_links)} name links on {page_url}")
@@ -81,23 +86,25 @@ def ingest_pattern(
         for a in name_links:
             name = a.get_text(strip=True)
             detail_path = a.get('href')
-            detail_url = 'https://b-name.jp' + detail_path
-            # 詳細ページで読みを取得
-            r3 = requests.get(detail_url)
-            s3 = BeautifulSoup(r3.text, 'html.parser')
-            yomi_tag = s3.select_one('span.yomi')
-            yomi = yomi_tag.get_text(strip=True) if yomi_tag else ''
-            total = sum(strokes_list)
-            # DB保存
-            try:
-                cur.execute(
-                    "INSERT OR IGNORE INTO names(name, yomi, chars, strokes_1, strokes_2, strokes_3, total_strokes, gender, source_url) VALUES(?,?,?,?,?,?,?,?,?)",
-                    (name, yomi, chars, strokes_list[0], strokes_list[1] if chars>=2 else None,
-                     strokes_list[2] if chars==3 else None, total, gender, detail_url)
-                )
-                conn.commit()
-            except Exception:
-                conn.rollback()
-            # サーバー負荷軽減
-            time.sleep(0.5)
+            if detail_path:
+                detail_url = 'https://b-name.jp' + detail_path
+                # 詳細ページで読みを取得
+                # セキュリティ強化：タイムアウト設定
+                r3 = requests.get(detail_url, timeout=30)
+                s3 = BeautifulSoup(r3.text, 'html.parser')
+                yomi_tag = s3.select_one('span.yomi')
+                yomi = yomi_tag.get_text(strip=True) if yomi_tag else ''
+                total = sum(s for s in strokes_list if s is not None)
+                # DB保存
+                try:
+                    cur.execute(
+                        "INSERT OR IGNORE INTO names(name, yomi, chars, strokes_1, strokes_2, strokes_3, total_strokes, gender, source_url) VALUES(?,?,?,?,?,?,?,?,?)",
+                        (name, yomi, chars, strokes_list[0], strokes_list[1] if chars>=2 else None,
+                         strokes_list[2] if chars==3 else None, total, gender, detail_url)
+                    )
+                    conn.commit()
+                except Exception:
+                    conn.rollback()
+                # サーバー負荷軽減
+                time.sleep(0.5)
     conn.close() 

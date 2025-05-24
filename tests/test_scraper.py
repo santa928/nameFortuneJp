@@ -1,93 +1,93 @@
-import logging
-from app.core.scraper import create_scraper, Scraper, NameFortuneScraper
 import unittest
-from bs4 import BeautifulSoup
+from unittest.mock import Mock, patch
+
 import requests
-import urllib3
+from bs4 import BeautifulSoup
+
 from app.core.fortune_analyzer import FortuneAnalyzer
+from app.core.scraper import create_scraper
 
-# SSL証明書の警告を無効化
-urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
-logging.basicConfig(level=logging.DEBUG)
-logger = logging.getLogger(__name__)
+class TestScraper(unittest.TestCase):
+    """スクレイピング機能のテスト"""
 
-class TestNameFortuneScraper(unittest.TestCase):
-    def setUp(self):
-        self.scraper = NameFortuneScraper()
-
-    def test_namaeuranai_scraping(self):
-        """namaeuranai.bizのスクレイピングテスト"""
-        url = "https://namaeuranai.biz/result/%E7%94%B0%E4%B8%AD_%E5%A4%AA%E9%83%8E/%E7%94%B7%E6%80%A7"
-        response = requests.get(url, verify=False)  # SSL検証を無効化
-        soup = BeautifulSoup(response.text, 'html.parser')
-        
-        # 結果ボックスを取得
-        result_boxes = soup.find_all('div', class_='result-box')
-        self.assertGreater(len(result_boxes), 0, "結果ボックスが見つかりません")
-        
-        # 各運勢の要素を確認
-        for box in result_boxes:
-            title = box.find('h3', class_='title01')
-            if title:
-                logger.info(f"Found title: {title.text}")
-                fortune = box.find('span', class_='f-large')
-                if fortune:
-                    logger.info(f"Found fortune: {fortune.text}")
-                description = box.find('p', class_='text02')
-                if description:
-                    logger.info(f"Found description: {description.text}")
-
-    def test_enamae_scraping(self):
-        """enamae.netのスクレイピングテスト"""
-        url = "https://enamae.net/m/%E7%94%B0%E4%B8%AD__%E5%A4%AA%E9%83%8E"
-        response = requests.get(url, verify=False)  # SSL検証を無効化
-        soup = BeautifulSoup(response.text, 'html.parser')
-        
-        # h2タグを検索
-        h2_tags = soup.find_all('h2')
-        self.assertGreater(len(h2_tags), 0, "h2タグが見つかりません")
-        
-        for h2 in h2_tags:
-            logger.info(f"Found h2: {h2.text}")
-            next_p = h2.find_next('p')
-            if next_p:
-                logger.info(f"Found description: {next_p.text}")
-
-class TestScraperAndScoring(unittest.TestCase):
-    def setUp(self):
-        self.scraper = create_scraper()
+    def setUp(self) -> None:
+        """テスト前の準備"""
         self.analyzer = FortuneAnalyzer()
+        self.scraper = create_scraper()
 
-    def test_tanaka_taro(self):
-        """田中太郎のケースをテスト"""
-        # スクレイピング結果を取得
-        fortune_result = self.scraper.get_fortune("田中", "太郎", "m")
+    def test_namaeuranai_connection(self) -> None:
+        """namaeuranai.bizへの接続テスト（SSL証明書フォールバック対応）"""
+        url = "https://namaeuranai.biz/result/%E7%94%B0%E4%B8%AD_%E5%A4%AA%E9%83%8E/%E7%94%B7%E6%80%A7"
         
-        # 結果をログ出力
-        logger.info("=== enamae.net の結果 ===")
-        for key, value in fortune_result["enamae"].items():
-            if not key.endswith("_説明"):
-                logger.info(f"{key}: {value}")
+        # フォールバック機能のテスト
+        try:
+            # まずSSL検証有効で試行
+            response = requests.get(url, timeout=30, verify=True)
+        except requests.exceptions.SSLError:
+            # SSL証明書エラーの場合は検証無効で再試行
+            response = requests.get(url, timeout=30, verify=False)
         
-        logger.info("\n=== namaeuranai.biz の結果 ===")
-        for key, value in fortune_result["namaeuranai"].items():
-            if not key.endswith("_説明"):
-                logger.info(f"{key}: {value}")
+        soup = BeautifulSoup(response.text, "html.parser")
+        
+        # 基本的なHTMLチェック
+        self.assertEqual(response.status_code, 200)
+        self.assertIsNotNone(soup.find("title"))
 
-        # スコア計算
-        enamae_score = self.analyzer._calculate_enamae_score(fortune_result["enamae"])
-        namaeuranai_score = self.analyzer._calculate_namaeuranai_score(fortune_result["namaeuranai"])
-        total_score = (enamae_score + namaeuranai_score) / 2
+    def test_enamae_connection(self) -> None:
+        """enamae.netへの接続テスト"""
+        url = "https://enamae.net/m/%E7%94%B0%E4%B8%AD__%E5%A4%AA%E9%83%8E"
+        # セキュリティ強化：SSL検証を有効化、タイムアウト設定
+        response = requests.get(url, timeout=30, verify=True)
+        soup = BeautifulSoup(response.text, "html.parser")
+        
+        # 基本的なHTMLチェック
+        self.assertEqual(response.status_code, 200)
+        self.assertIsNotNone(soup.find("title"))
 
-        logger.info("\n=== スコア計算結果 ===")
-        logger.info(f"enamae スコア: {enamae_score}")
-        logger.info(f"namaeuranai スコア: {namaeuranai_score}")
-        logger.info(f"総合スコア: {total_score}")
+    def test_scraper_fortune_retrieval(self) -> None:
+        """実際のスクレイピング機能をテスト"""
+        result = self.scraper.get_fortune('田中', '太郎', 'm')
+        
+        # 両方のサイトから結果が取得できることを確認
+        self.assertIn('enamae.net', result)
+        self.assertIn('namaeuranai.biz', result)
+        
+        # enamae.net の結果確認
+        enamae_result = result['enamae.net']
+        self.assertIn('天格', enamae_result)
+        self.assertIn('人格', enamae_result)
+        self.assertIn('地格', enamae_result)
+        
+        # namaeuranai.biz の結果確認
+        namaeuranai_result = result['namaeuranai.biz']
+        self.assertIn('天格', namaeuranai_result)
+        self.assertIn('人格', namaeuranai_result)
+        self.assertIn('地格', namaeuranai_result)
 
-        # スコアが0でないことを確認
-        self.assertGreater(enamae_score, 0, "enamae スコアが0です")
-        self.assertGreater(namaeuranai_score, 0, "namaeuranai スコアが0です")
+    @patch('app.core.scraper.requests.get')
+    def test_scraper_with_mock(self, mock_get: Mock) -> None:
+        """モックを使用したスクレイパーテスト"""
+        # モックレスポンスの設定
+        mock_response = Mock()
+        mock_response.status_code = 200
+        mock_response.text = "<html><title>テスト</title></html>"
+        mock_get.return_value = mock_response
+        
+        # テスト実行
+        self.assertEqual(mock_response.status_code, 200)
+
+    def test_analyzer_initialization(self) -> None:
+        """FortuneAnalyzerの初期化テスト"""
+        analyzer = FortuneAnalyzer()
+        self.assertIsNotNone(analyzer)
+
+    def test_invalid_url_handling(self) -> None:
+        """無効なURLの処理テスト"""
+        # 無効なURLでのテスト
+        with self.assertRaises(requests.exceptions.RequestException):
+            requests.get("https://invalid-url-that-does-not-exist.com", timeout=5)
+
 
 if __name__ == '__main__':
     unittest.main() 

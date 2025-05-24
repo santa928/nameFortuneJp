@@ -180,3 +180,11 @@ cython_debug/
 .static/
 # SpecStory explanation file
 .specstory/.what-is-this.md
+
+# CI/CD関連
+*.sarif
+trivy-results.*
+.github/secrets/
+
+# セキュリティスキャン結果
+security-reports/

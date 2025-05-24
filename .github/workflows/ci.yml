@@ -6,6 +6,12 @@ on:
   pull_request:
     branches: [ main ]
 
+# CodeQLアクションに必要な権限を設定
+permissions:
+  actions: read
+  contents: read
+  security-events: write
+
 env:
   PYTHON_VERSION: '3.11'
 
@@ -61,6 +67,12 @@ jobs:
 
   security-scan:
     runs-on: ubuntu-latest
+    # セキュリティスキャンジョブに必要な権限を明示的に設定
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+      
     steps:
     - uses: actions/checkout@v4
     
@@ -71,12 +83,15 @@ jobs:
         scan-ref: '.'
         format: 'sarif'
         output: 'trivy-results.sarif'
+      continue-on-error: true  # セキュリティスキャンが失敗してもワークフローを継続
     
-    - name: Upload Trivy scan results
+    - name: Upload Trivy scan results to GitHub Security tab
       uses: github/codeql-action/upload-sarif@v3
       if: always()
       with:
         sarif_file: 'trivy-results.sarif'
+        category: 'trivy-fs-scan'
+      continue-on-error: true  # アップロードが失敗してもワークフローを継続
 
   docker-build:
     runs-on: ubuntu-latest

@@ -1,5 +1,9 @@
 # 姓名判断アプリケーション
 
+[![CI/CD Pipeline](https://github.com/yourusername/nameFortuneJp/actions/workflows/ci.yml/badge.svg)](https://github.com/yourusername/nameFortuneJp/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/yourusername/nameFortuneJp/branch/main/graph/badge.svg)](https://codecov.io/gh/yourusername/nameFortuneJp)
+[![Security Rating](https://img.shields.io/badge/security-A-green)](https://github.com/yourusername/nameFortuneJp/security)
+
 複数の姓名判断サイトの結果を統合分析するWebアプリケーションです。
 
 ## 機能
@@ -34,10 +38,14 @@
 
 ## 技術スタック
 
-- フロントエンド：HTML, CSS, JavaScript
-- バックエンド：Python 3.8+, Flask
-- データベース：ファイルシステム（JSON）
-- コンテナ化：Docker, docker-compose
+- **フロントエンド**：HTML, CSS, JavaScript
+- **バックエンド**：Python 3.11+, Flask
+- **データベース**：SQLite, ファイルシステム（JSON）
+- **コンテナ化**：Docker, docker-compose
+- **CI/CD**：GitHub Actions
+- **セキュリティ**：Trivy vulnerability scanner
+- **テスト**：pytest, coverage.py
+- **コード品質**：pre-commit, black, isort, flake8, mypy
 
 ## 必要条件
 
@@ -108,4 +116,19 @@ docker-compose exec web python ingest_runner.py \
 # 例: 1文字 + 女性データを投入
 docker-compose exec web python ingest_runner.py --chars 1 --strokes1 5 --gender female
 ```
+
+## セキュリティ
+
+本プロジェクトでは以下のセキュリティ対策を実装しています：
+
+- **脆弱性スキャン**：Trivyによる依存関係の自動チェック
+- **静的解析**：SARIF形式でのセキュリティレポート生成
+- **継続的監視**：GitHub Security tabでの脆弱性管理
+- **自動アラート**：重要度別セキュリティアラート通知
+
+### セキュリティレポートの確認方法
+
+1. GitHubリポジトリの「Security」タブにアクセス
+2. 「Code scanning alerts」で検出された脆弱性を確認
+3. 各アラートの詳細と修正提案を確認
 

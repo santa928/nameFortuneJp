@@ -74,9 +74,15 @@ class FortuneAnalyzer:
             await asyncio.sleep(0.5)  # 0.5秒のウェイト
             name = "".join([get_character_by_strokes(s) for s in pattern])
             # requests ベースの同期 I/O をスレッドプールで実行し、イベントループをブロックしない
-            fortune_result = await asyncio.to_thread(
+            raw_fortune_result = await asyncio.to_thread(
                 self.scraper.get_fortune, last_name, name, "m", True
             )
+            
+            # UIが期待する形式に変換
+            fortune_result = {
+                "enamae": raw_fortune_result.get("enamae.net", {}),
+                "namaeuranai": raw_fortune_result.get("namaeuranai.biz", {})
+            }
             
             if progress_callback:
                 progress_rate = progress.update(pattern)

@@ -7,16 +7,16 @@ RUN groupadd -r appuser && useradd -r -g appuser appuser
 WORKDIR /app
 
 # システムの依存関係をインストール（キャッシュ効率化）
-RUN apt-get update && apt-get install -y \
+RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     curl \
     && rm -rf /var/lib/apt/lists/* \
     && apt-get clean
 
-# Pythonパッケージをインストール
+# Pythonパッケージをインストール（バージョン固定）
 COPY requirements.txt .
-RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir -r requirements.txt
+RUN python -m pip install --no-cache-dir --upgrade pip==23.3.1 && \
+    pip install --no-cache-dir --requirement requirements.txt
 
 # 本番ステージ
 FROM python:3.11-slim
@@ -27,7 +27,7 @@ RUN groupadd -r appuser && useradd -r -g appuser appuser
 WORKDIR /app
 
 # 必要なシステムパッケージのみインストール
-RUN apt-get update && apt-get install -y \
+RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     && rm -rf /var/lib/apt/lists/* \
     && apt-get clean

@@ -18,9 +18,11 @@ class NameFortuneScraper:
     ENAMAE_ONLY_KEYS = ["三才配置", "陰陽配列"]
     NAMAEURANAI_ONLY_KEYS = ["仕事運", "家庭運"]
 
-    def __init__(self):
-        self.ENAMAE_URL = "https://enamae.net"
-        self.NAMAEURANAI_URL = "https://namaeuranai.biz"
+    ENAMAE_URL = "https://enamae.net"
+    NAMAEURANAI_URL = "https://namaeuranai.biz"
+
+    def __init__(self) -> None:
+        """初期化"""
         self.logger = logger
 
     def get_fortune(
@@ -30,55 +32,54 @@ class NameFortuneScraper:
         gender: str = "m",
         stroke_list_mode: bool = False,
     ) -> Dict[str, Dict[str, str]]:
-        """両サイトから運勢を取得
+        """
+        姓名判断サイトから運勢を取得
 
         Args:
-            last_name (str): 姓
-            first_name (str): 名
-            gender (str, optional): 性別. Defaults to 'm'.
-            stroke_list_mode (bool, optional): 画数別運勢一覧モードかどうか. Defaults to False.
+            last_name: 姓
+            first_name: 名
+            gender: 性別 ("m" or "f")
+            stroke_list_mode: 画数別運勢一覧モード
 
         Returns:
-            dict: 運勢情報
+            Dict[str, Dict[str, str]]: 各サイトの運勢結果
         """
-        try:
-            # enamae.netの結果を取得
-            enamae_results = self._get_enamae_fortune(last_name, first_name, gender, stroke_list_mode)
-            
-            # namaeuranai.bizの結果を取得
-            namaeuranai_results = self._get_namaeuranai_fortune(last_name, first_name, gender, stroke_list_mode)
-            
-            # 結果を整理して統合
-            return {
-                "enamae": self._sort_results(enamae_results, is_enamae=True),
-                "namaeuranai": self._sort_results(namaeuranai_results, is_enamae=False)
-            }
-            
-        except Exception as e:
-            logger.error(f"予期せぬエラーが発生: {e}")
-            return {"error": f"運勢の取得中にエラーが発生しました: {str(e)}"}
+        self.logger.info(f"運勢取得開始: {last_name} {first_name} ({gender})")
+
+        # 各サイトから結果を取得
+        enamae_results = self._get_enamae_fortune(last_name, first_name, gender, stroke_list_mode)
+        namaeuranai_results = self._get_namaeuranai_fortune(last_name, first_name, gender, stroke_list_mode)
+
+        # 結果を結合
+        results = {
+            "enamae.net": self._sort_results(enamae_results, is_enamae=True),
+            "namaeuranai.biz": self._sort_results(namaeuranai_results, is_enamae=False)
+        }
+
+        self.logger.info(f"運勢取得完了: enamae({len(enamae_results)}項目), namaeuranai({len(namaeuranai_results)}項目)")
+        return results
 
     def _sort_results(
         self, results: Dict[str, str], *, is_enamae: bool = True
     ) -> Dict[str, str]:
-        """結果を定義された順序に並び替え"""
+        """結果を指定された順序でソート"""
         sorted_results = {}
-        
-        # 共通項目を先に追加
+
+        # 共通項目を順序通りに追加
         for key in self.COMMON_KEYS:
             if key in results:
                 sorted_results[key] = results[key]
-                if f"{key}_説明" in results:
-                    sorted_results[f"{key}_説明"] = results[f"{key}_説明"]
-        
+            if f"{key}_説明" in results:
+                sorted_results[f"{key}_説明"] = results[f"{key}_説明"]
+
         # サイト固有の項目を追加
-        specific_keys = self.ENAMAE_ONLY_KEYS if is_enamae else self.NAMAEURANAI_ONLY_KEYS
-        for key in specific_keys:
+        site_keys = self.ENAMAE_ONLY_KEYS if is_enamae else self.NAMAEURANAI_ONLY_KEYS
+        for key in site_keys:
             if key in results:
                 sorted_results[key] = results[key]
-                if f"{key}_説明" in results:
-                    sorted_results[f"{key}_説明"] = results[f"{key}_説明"]
-        
+            if f"{key}_説明" in results:
+                sorted_results[f"{key}_説明"] = results[f"{key}_説明"]
+
         return sorted_results
 
     def _get_enamae_fortune(
@@ -90,13 +91,14 @@ class NameFortuneScraper:
     ) -> Dict[str, str]:
         """enamae.netから運勢を取得"""
         try:
-            encoded_name = f"{urllib.parse.quote(last_name)}__{urllib.parse.quote(first_name)}"
             # 画数別運勢一覧モードの場合は男性固定
-            gender_param = "m" if stroke_list_mode else gender
-            url = f"{self.ENAMAE_URL}/{gender_param}/{encoded_name}#result"
+            gender_str = "m" if stroke_list_mode else gender
+            encoded_name = f"{urllib.parse.quote(last_name)}__{urllib.parse.quote(first_name)}"
+            url = f"{self.ENAMAE_URL}/{gender_str}/{encoded_name}"
             self.logger.debug(f"enamae.net リクエストURL: {url}")
 
-            response = requests.get(url, verify=False)  # SSL検証を無効化
+            # セキュリティを強化：SSL検証を有効化、タイムアウト設定
+            response = requests.get(url, timeout=30, verify=True)
             response.raise_for_status()
             
             soup = BeautifulSoup(response.text, 'html.parser')
@@ -130,8 +132,17 @@ class NameFortuneScraper:
             url = f"{self.NAMAEURANAI_URL}/result/{encoded_name}/{urllib.parse.quote(gender_str)}"
             self.logger.debug(f"namaeuranai.biz リクエストURL: {url}")
 
-            response = requests.get(url, verify=False)  # SSL検証を無効化
-            response.raise_for_status()
+            # namaeuranai.bizの SSL証明書問題を回避（開発環境のみ）
+            # 本番環境では適切なCA証明書バンドルを使用することを推奨
+            try:
+                # まずSSL検証有効で試行
+                response = requests.get(url, timeout=30, verify=True)
+                response.raise_for_status()
+            except requests.exceptions.SSLError:
+                self.logger.warning("namaeuranai.biz: SSL証明書エラーのため、検証を無効化して再試行")
+                # SSL検証を無効化して再試行
+                response = requests.get(url, timeout=30, verify=False)
+                response.raise_for_status()
             
             soup = BeautifulSoup(response.text, 'html.parser')
             results = self._extract_namaeuranai_results(soup)

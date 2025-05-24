@@ -73,9 +73,14 @@ def generate():
         for strokes in range(1, 21):
             # 仮の名として画数に対応する文字を使用
             test_name = get_character_by_strokes(strokes)
-            fortune_result = scraper.get_fortune(last_name, test_name, gender)
+            raw_fortune_result = scraper.get_fortune(last_name, test_name, gender)
             
-            if 'error' not in fortune_result:
+            if 'error' not in raw_fortune_result:
+                # UIが期待する形式に変換
+                fortune_result = {
+                    "enamae": raw_fortune_result.get("enamae.net", {}),
+                    "namaeuranai": raw_fortune_result.get("namaeuranai.biz", {})
+                }
                 results[str(strokes)] = fortune_result
         
         return jsonify({
@@ -97,18 +102,25 @@ def analyze():
         app.logger.debug(f"リクエスト: 姓={request_data.last_name}, 名={request_data.first_name}, 性別={request_data.gender}")
         
         # バリデーション済みのデータを使用
-        results = scraper.get_fortune(
+        raw_results = scraper.get_fortune(
             request_data.last_name, 
             request_data.first_name, 
             request_data.gender
         )
-        app.logger.debug(f"スクレイピング結果: {results}")
+        app.logger.debug(f"スクレイピング結果: {raw_results}")
         
-        if 'error' in results:
-            app.logger.error(f"スクレイピングエラー: {results['error']}")
-            error_response = ErrorResponse(error=results['error'])
+        if 'error' in raw_results:
+            app.logger.error(f"スクレイピングエラー: {raw_results['error']}")
+            error_response = ErrorResponse(error=raw_results['error'])
             return jsonify(error_response.model_dump()), 500
         
+        # UIが期待する形式に変換
+        results = {
+            "enamae": raw_results.get("enamae.net", {}),
+            "namaeuranai": raw_results.get("namaeuranai.biz", {})
+        }
+        
+        app.logger.debug(f"変換後の結果: {results}")
         return jsonify(results)
     
     except ValidationError as e:
@@ -297,6 +309,16 @@ def healthz():
     return 'ok', 200
 
 if __name__ == '__main__':
-    # デバッグモードを有効にし、タイムアウトを60分に設定
+    # 環境変数でデバッグモードを制御（本番環境ではFalse）
+    debug_mode = os.getenv('FLASK_DEBUG', 'False').lower() == 'true'
+    host = os.getenv('FLASK_HOST', '0.0.0.0')
+    port = int(os.getenv('FLASK_PORT', '5000'))
+    
     app.config['TIMEOUT'] = 3600
-    app.run(debug=True, host='0.0.0.0', threaded=True, request_handler=WSGIRequestHandler) 
+    app.run(
+        debug=debug_mode, 
+        host=host, 
+        port=port,
+        threaded=True, 
+        request_handler=WSGIRequestHandler
+    ) 
