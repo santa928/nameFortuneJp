@@ -3,7 +3,7 @@ import sqlite3
 import requests
 from bs4 import BeautifulSoup
 import os
-from typing import List
+from typing import List, Optional
 
 # 名前データベースのパス
 DB_PATH = os.getenv('NAME_DB_PATH', 'names.db')
@@ -12,8 +12,8 @@ DB_PATH = os.getenv('NAME_DB_PATH', 'names.db')
 def ingest_pattern(
     chars: int,
     strokes1: int,
-    strokes2: int = None,
-    strokes3: int = None,
+    strokes2: Optional[int] = None,
+    strokes3: Optional[int] = None,
     gender: str = 'male'
 ) -> None:
     """

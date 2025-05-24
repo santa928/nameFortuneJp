@@ -4,10 +4,20 @@ CLI スクリプト: 赤ちゃん命名ガイドから名前候補データを S
 """
 import argparse
 import sys
+from typing import NoReturn
 from app.core.ingest import ingest_pattern
 
 
-def main():
+def main() -> NoReturn:
+    """CLI エントリポイント
+
+    コマンドライン引数を解析し、`ingest_pattern` を実行して名前候補を
+    SQLite データベースへ取り込む。
+    
+    終了時には `sys.exit` を通じて戻り値 0 / 1 を返すため、Python 的には
+    戻り値を返さない (`NoReturn`) 型注釈とする。
+    """
+
     parser = argparse.ArgumentParser(
         description='赤ちゃん命名ガイドから名前データをSQLite DBに投入するCLI'
     )

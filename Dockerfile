@@ -21,4 +21,7 @@ RUN mkdir -p /app/static
 EXPOSE 5000
 
 # アプリケーションを実行
-CMD ["python", "-m", "app.main"] 
+CMD ["python", "-m", "app.main"]
+
+# コンテナのヘルスチェック
+HEALTHCHECK --interval=30s --timeout=10s --retries=3 CMD curl -f http://localhost:5000/healthz || exit 1 

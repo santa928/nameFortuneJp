@@ -16,6 +16,9 @@ from app.core.fortune_analyzer import FortuneAnalyzer, get_character_by_strokes
 from app.core.name_generator import init_db, get_name_candidates
 from app.core.ingest import ingest_pattern
 
+# ロギング設定を中央集権化
+from app.core.logging_config import setup_logging
+
 # タイムアウトを60分に設定
 WSGIRequestHandler.protocol_version = "HTTP/1.1"
 os.environ['PYTHONUNBUFFERED'] = '1'
@@ -33,6 +36,9 @@ scraping_progress = {}
 
 # 名前候補データベース初期化
 init_db()
+
+# 先にロギングを初期化
+setup_logging()
 
 def load_fortune_types() -> Dict[str, List[str]]:
     """運勢タイプのJSONファイルを読み込む"""
@@ -273,6 +279,11 @@ def name_candidates_progress(job_id):
     """バックグラウンドスクレイピングの進捗を返却するAPI"""
     progress = scraping_progress.get(job_id, {})
     return jsonify(progress)
+
+@app.route('/healthz')
+def healthz():
+    """コンテナ・ロードバランサ用ヘルスチェック"""
+    return 'ok', 200
 
 if __name__ == '__main__':
     # デバッグモードを有効にし、タイムアウトを60分に設定

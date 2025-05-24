@@ -5,7 +5,7 @@ from typing import List, Dict, Any
 from app.core.scraper import create_scraper
 import logging
 
-logging.basicConfig(level=logging.INFO)
+# 中央の setup_logging() で basicConfig が呼び出される
 logger = logging.getLogger(__name__)
 
 class ProgressTracker:
@@ -73,7 +73,10 @@ class FortuneAnalyzer:
         async def process_pattern(pattern: List[int]) -> Dict[str, Any]:
             await asyncio.sleep(0.5)  # 0.5秒のウェイト
             name = "".join([get_character_by_strokes(s) for s in pattern])
-            fortune_result = self.scraper.get_fortune(last_name, name, "m", stroke_list_mode=True)
+            # requests ベースの同期 I/O をスレッドプールで実行し、イベントループをブロックしない
+            fortune_result = await asyncio.to_thread(
+                self.scraper.get_fortune, last_name, name, "m", True
+            )
             
             if progress_callback:
                 progress_rate = progress.update(pattern)
@@ -99,13 +102,18 @@ class FortuneAnalyzer:
                 "total_score": total_score
             }
             
-        # 4並列で実行
+        # -- 並列数を制御するセマフォ --
         semaphore = asyncio.Semaphore(4)
-        tasks = []
-        for pattern in patterns:
+
+        async def _sem_task(pattern: List[int]):
+            """セマフォ付きで process_pattern を呼び出すヘルパー"""
             async with semaphore:
-                tasks.append(process_pattern(pattern))
-                
+                return await process_pattern(pattern)
+
+        # 非同期タスクを一括生成
+        tasks = [asyncio.create_task(_sem_task(pattern)) for pattern in patterns]
+
+        # gather で同時実行し、完了を待つ
         results = await asyncio.gather(*tasks)
         
         # スコアで降順ソートして上位20件を取得

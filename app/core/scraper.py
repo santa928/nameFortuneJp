@@ -9,7 +9,7 @@ from typing import Dict
 # SSL証明書の警告を無効化
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
-logging.basicConfig(level=logging.DEBUG)
+# 中央の setup_logging() で basicConfig 済み
 logger = logging.getLogger(__name__)
 
 class NameFortuneScraper:
@@ -23,7 +23,13 @@ class NameFortuneScraper:
         self.NAMAEURANAI_URL = "https://namaeuranai.biz"
         self.logger = logger
 
-    def get_fortune(self, last_name, first_name, gender='m', stroke_list_mode=False):
+    def get_fortune(
+        self,
+        last_name: str,
+        first_name: str,
+        gender: str = "m",
+        stroke_list_mode: bool = False,
+    ) -> Dict[str, Dict[str, str]]:
         """両サイトから運勢を取得
 
         Args:
@@ -52,7 +58,9 @@ class NameFortuneScraper:
             logger.error(f"予期せぬエラーが発生: {e}")
             return {"error": f"運勢の取得中にエラーが発生しました: {str(e)}"}
 
-    def _sort_results(self, results, is_enamae=True):
+    def _sort_results(
+        self, results: Dict[str, str], *, is_enamae: bool = True
+    ) -> Dict[str, str]:
         """結果を定義された順序に並び替え"""
         sorted_results = {}
         
@@ -73,7 +81,13 @@ class NameFortuneScraper:
         
         return sorted_results
 
-    def _get_enamae_fortune(self, last_name, first_name, gender, stroke_list_mode=False):
+    def _get_enamae_fortune(
+        self,
+        last_name: str,
+        first_name: str,
+        gender: str,
+        stroke_list_mode: bool = False,
+    ) -> Dict[str, str]:
         """enamae.netから運勢を取得"""
         try:
             encoded_name = f"{urllib.parse.quote(last_name)}__{urllib.parse.quote(first_name)}"
@@ -101,7 +115,13 @@ class NameFortuneScraper:
             self.logger.error(f"enamae.net 予期せぬエラー: {e}")
             return {}
 
-    def _get_namaeuranai_fortune(self, last_name, first_name, gender, stroke_list_mode=False):
+    def _get_namaeuranai_fortune(
+        self,
+        last_name: str,
+        first_name: str,
+        gender: str,
+        stroke_list_mode: bool = False,
+    ) -> Dict[str, str]:
         """namaeuranai.bizから運勢を取得"""
         try:
             # 画数別運勢一覧モードの場合は男性固定
@@ -271,5 +291,6 @@ class NameFortuneScraper:
             self.logger.error(f"namaeuranai.biz 結果の抽出中にエラーが発生: {e}")
             return {}
 
-def create_scraper():
+def create_scraper() -> "NameFortuneScraper":
+    """Factory function to obtain a shared scraper instance"""
     return NameFortuneScraper() 
