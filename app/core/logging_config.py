@@ -1,20 +1,49 @@
-import logging
-import os
-from typing import Optional
+"""構造化ログ設定モジュール"""
+import sys
+import structlog
+from typing import Any, Dict
 
 
-def setup_logging(level: Optional[int] = None) -> None:
-    """アプリ全体のロギング設定を初期化するユーティリティ
+def setup_logging() -> None:
+    """構造化ログの設定を行う"""
+    
+    # 標準ライブラリのloggingとstructlogを統合
+    structlog.configure(
+        processors=[
+            # 構造化ログ用のプロセッサー
+            structlog.stdlib.filter_by_level,
+            structlog.stdlib.add_logger_name,
+            structlog.stdlib.add_log_level,
+            structlog.stdlib.PositionalArgumentsFormatter(),
+            structlog.processors.TimeStamper(fmt="iso"),
+            structlog.processors.StackInfoRenderer(),
+            structlog.processors.format_exc_info,
+            structlog.processors.UnicodeDecoder(),
+            # JSON形式で出力（本番環境向け）
+            structlog.processors.JSONRenderer() if _is_production() else structlog.dev.ConsoleRenderer()
+        ],
+        wrapper_class=structlog.stdlib.BoundLogger,
+        logger_factory=structlog.stdlib.LoggerFactory(),
+        context_class=dict,
+        cache_logger_on_first_use=True,
+    )
 
-    Args:
-        level (Optional[int]): ログレベル。未指定なら環境変数 LOG_LEVEL か INFO。
-    """
-    if level is None:
-        env_level = os.getenv("LOG_LEVEL")
-        level = getattr(logging, env_level.upper(), logging.INFO) if env_level else logging.INFO
 
-    # basicConfig は 1 回だけ有効になるため、何度呼ばれても問題ない
-    logging.basicConfig(
-        level=level,
-        format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
-    ) 
+def _is_production() -> bool:
+    """本番環境かどうかを判定"""
+    import os
+    return os.getenv("FLASK_ENV", "development") == "production"
+
+
+def get_logger(name: str) -> structlog.stdlib.BoundLogger:
+    """構造化ログインスタンスを取得"""
+    return structlog.get_logger(name)
+
+
+# アプリケーション用のログファクトリ
+def create_app_logger(context: Dict[str, Any] = None) -> structlog.stdlib.BoundLogger:
+    """アプリケーション用のログインスタンスを作成"""
+    logger = get_logger("namefortune")
+    if context:
+        logger = logger.bind(**context)
+    return logger 

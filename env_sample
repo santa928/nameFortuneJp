@@ -1,0 +1,32 @@
+# Flask設定
+FLASK_APP=app.main
+FLASK_ENV=development
+FLASK_DEBUG=True
+SECRET_KEY=your-secret-key-here
+
+# データベース設定
+DATABASE_PATH=names.db
+
+# ログレベル設定
+LOG_LEVEL=DEBUG
+
+# アプリケーション設定
+TIMEOUT=3600
+MAX_CONCURRENT_REQUESTS=4
+
+# スクレイピング設定
+SCRAPING_DELAY=0.5
+REQUEST_TIMEOUT=30
+
+# セキュリティ設定
+ALLOWED_HOSTS=localhost,127.0.0.1
+CORS_ORIGINS=http://localhost:3000,http://localhost:5000
+
+# 外部API設定
+ENAMAE_BASE_URL=https://enamae.net
+NAMAEURANAI_BASE_URL=https://namaeuranai.biz
+
+# 本番環境用設定（本番でのみ使用）
+# FLASK_ENV=production
+# FLASK_DEBUG=False
+# LOG_LEVEL=INFO 

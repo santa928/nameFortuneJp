@@ -9,12 +9,14 @@ from typing import Dict, List
 # サードパーティライブラリ
 from flask import Flask, render_template, request, jsonify
 from werkzeug.serving import WSGIRequestHandler
+from pydantic import ValidationError
 
 # ローカルアプリケーション
 from app.core.scraper import create_scraper
 from app.core.fortune_analyzer import FortuneAnalyzer, get_character_by_strokes
 from app.core.name_generator import init_db, get_name_candidates
 from app.core.ingest import ingest_pattern
+from app.core.models import FortuneRequest, NameCandidateRequest, ErrorResponse
 
 # ロギング設定を中央集権化
 from app.core.logging_config import setup_logging
@@ -87,29 +89,38 @@ def generate():
 
 @app.route('/analyze', methods=['POST'])
 def analyze():
+    """姓名判断API - Pydanticモデルを使用した型安全な実装"""
     try:
-        data = request.get_json()
-        last_name = data.get('last_name', '')
-        first_name = data.get('first_name', '')
-        gender = data.get('gender', 'm')
+        # Pydanticモデルによる自動バリデーション
+        request_data = FortuneRequest(**request.get_json())
         
-        app.logger.debug(f"リクエスト: 姓={last_name}, 名={first_name}, 性別={gender}")
+        app.logger.debug(f"リクエスト: 姓={request_data.last_name}, 名={request_data.first_name}, 性別={request_data.gender}")
         
-        if not last_name or not first_name:
-            return jsonify({'error': '姓名を入力してください'}), 400
-        
-        results = scraper.get_fortune(last_name, first_name, gender)
+        # バリデーション済みのデータを使用
+        results = scraper.get_fortune(
+            request_data.last_name, 
+            request_data.first_name, 
+            request_data.gender
+        )
         app.logger.debug(f"スクレイピング結果: {results}")
         
         if 'error' in results:
             app.logger.error(f"スクレイピングエラー: {results['error']}")
-            return jsonify({'error': results['error']}), 500
+            error_response = ErrorResponse(error=results['error'])
+            return jsonify(error_response.model_dump()), 500
         
         return jsonify(results)
     
+    except ValidationError as e:
+        # Pydanticバリデーションエラー
+        app.logger.warning(f"バリデーションエラー: {e}")
+        error_response = ErrorResponse(error=f"入力データが不正です: {str(e)}")
+        return jsonify(error_response.model_dump()), 400
+    
     except Exception as e:
         app.logger.exception("予期せぬエラーが発生しました")
-        return jsonify({'error': f"サーバーエラー: {str(e)}"}), 500
+        error_response = ErrorResponse(error=f"サーバーエラー: {str(e)}")
+        return jsonify(error_response.model_dump()), 500
 
 @app.route('/analyze_progress/<queue_id>')
 def get_progress(queue_id):

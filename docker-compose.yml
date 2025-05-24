@@ -1,19 +1,78 @@
-version: '3'
+version: '3.8'
 
 services:
   web:
-    build: .
+    build: 
+      context: .
+      dockerfile: Dockerfile
     ports:
-      - "5001:5000"
+      - "${APP_PORT:-5001}:5000"
     volumes:
       - .:/app
       - static_data:/app/app/static
+      - names_db:/app/data
     environment:
       - FLASK_APP=app.main
-      - FLASK_ENV=development
+      - FLASK_ENV=${FLASK_ENV:-development}
+      - FLASK_DEBUG=${FLASK_DEBUG:-True}
+      - SECRET_KEY=${SECRET_KEY:-dev-secret-key}
+      - DATABASE_PATH=/app/data/names.db
+      - LOG_LEVEL=${LOG_LEVEL:-DEBUG}
       - PYTHONUNBUFFERED=1
+    env_file:
+      - .env
     command: python -m app.main
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/healthz"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    depends_on:
+      - redis
+    networks:
+      - namefortune-network
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - namefortune-network
+
+  # 開発用のテストランナー
+  test:
+    build: 
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - .:/app
+    environment:
+      FLASK_ENV: testing
+      DATABASE_PATH: ":memory:"
+    command: python -m pytest
+    profiles:
+      - test
+    networks:
+      - namefortune-network
 
 volumes:
   static_data:
+    driver: local
+  names_db:
+    driver: local
+  redis_data:
+    driver: local
+
+networks:
+  namefortune-network:
+    driver: bridge
