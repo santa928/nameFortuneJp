@@ -1,9 +1,9 @@
 import os
 import sqlite3
-from typing import List, Dict, Optional
+from typing import Dict, List, Optional
 
 # データベースファイルのパス（環境変数NAME_DB_PATHで設定可能）
-DB_PATH = os.getenv('NAME_DB_PATH', 'names.db')
+DB_PATH = os.getenv("NAME_DB_PATH", "names.db")
 
 
 def init_db() -> None:
@@ -13,7 +13,8 @@ def init_db() -> None:
     """
     conn = sqlite3.connect(DB_PATH)
     cur = conn.cursor()
-    cur.execute("""
+    cur.execute(
+        """
         CREATE TABLE IF NOT EXISTS names (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             name TEXT NOT NULL,
@@ -38,7 +39,7 @@ def get_name_candidates(
     strokes1: int,
     strokes2: Optional[int] = None,
     strokes3: Optional[int] = None,
-    gender: Optional[str] = None
+    gender: Optional[str] = None,
 ) -> List[Dict[str, str]]:
     """
     指定された文字数、各文字の画数、性別に合致する名前候補を最大50件取得する。
@@ -80,9 +81,5 @@ def get_name_candidates(
     # 結果を辞書化
     candidates: List[Dict[str, str]] = []
     for name, yomi, g in rows:
-        candidates.append({
-            'name': name,
-            'yomi': yomi or '',
-            'gender': g
-        })
-    return candidates 
+        candidates.append({"name": name, "yomi": yomi or "", "gender": g})
+    return candidates
