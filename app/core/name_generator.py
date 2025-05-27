@@ -55,7 +55,10 @@ def get_name_candidates(
     cur = conn.cursor()
 
     # ベースクエリ
-    query = "SELECT name, yomi, gender FROM names WHERE chars = ? AND strokes_1 = ?"
+    query = (
+        "SELECT name, yomi, gender FROM names "
+        "WHERE chars = ? AND strokes_1 = ?"
+    )
     params: List = [chars, strokes1]
 
     # 2文字目・3文字目の画数条件

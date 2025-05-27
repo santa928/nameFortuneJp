@@ -22,7 +22,7 @@ class TestFortuneAnalyzer(unittest.TestCase):
                     "総格": "吉",
                     "三才配置": "大吉",
                 },
-                "expected": 91.67,  # (100 + 80 + 90 + 100 + 80 + 100) / 6 = 91.66666...
+                "expected": 91.67,  # (100 + 80 + 90 + 100 + 80 + 100) / 6
             },
             {
                 "input": {
@@ -66,7 +66,7 @@ class TestFortuneAnalyzer(unittest.TestCase):
                     "仕事運": "大大吉",
                     "家庭運": "大吉",
                 },
-                "expected": 90.0,  # (100 + 90 + 80 + 90 + 80 + 100 + 90) / 7 = 90.0
+                "expected": 90.0,  # 7項目平均: 90.0
             },
             {
                 "input": {
@@ -78,7 +78,7 @@ class TestFortuneAnalyzer(unittest.TestCase):
                     "仕事運": "吉",
                     "家庭運": "大凶",
                 },
-                "expected": 52.86,  # 実際のスコア: 52.857142857142854
+                "expected": 52.86,  # 7項目平均: 52.857...
             },
             {
                 "input": {
@@ -122,7 +122,7 @@ class TestFortuneAnalyzer(unittest.TestCase):
                         "家庭運": "大吉",
                     },
                 },
-                "expected": 90.83,  # (91.67 + 90.0) / 2 = 90.835
+                "expected": 90.83,  # 2サイト平均
             },
             {
                 "input": {

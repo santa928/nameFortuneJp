@@ -23,7 +23,9 @@ class Settings(BaseSettings):
 
     # アプリケーション設定
     timeout: int = Field(default=3600, alias="TIMEOUT")
-    max_concurrent_requests: int = Field(default=4, alias="MAX_CONCURRENT_REQUESTS")
+    max_concurrent_requests: int = Field(
+        default=4, alias="MAX_CONCURRENT_REQUESTS"
+    )
 
     # スクレイピング設定
     scraping_delay: float = Field(default=0.5, alias="SCRAPING_DELAY")

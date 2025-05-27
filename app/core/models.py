@@ -1,9 +1,12 @@
 """データモデルモジュール"""
 
 from datetime import datetime
-from typing import Any, List, Literal, Optional
+from typing import TYPE_CHECKING, Any, List, Literal, Optional
 
 from pydantic import BaseModel, Field, validator
+
+if TYPE_CHECKING:
+    pass
 
 
 class FortuneRequest(BaseModel):

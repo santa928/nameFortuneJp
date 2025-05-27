@@ -20,7 +20,8 @@ class TestScraper(unittest.TestCase):
         """namaeuranai.bizへの接続テスト（SSL証明書フォールバック対応）"""
         url = (
             "https://namaeuranai.biz/result/"
-            "%E7%94%B0%E4%B8%AD_%E5%A4%AA%E9%83%8E/%E7%94%B7%E6%80%A7"
+            "%E7%94%B0%E4%B8%AD_%E5%A4%AA%E9%83%8E/"
+            "%E7%94%B7%E6%80%A7"
         )
 
         # フォールバック機能のテスト
@@ -89,7 +90,9 @@ class TestScraper(unittest.TestCase):
         """無効なURLの処理テスト"""
         # 無効なURLでのテスト
         with self.assertRaises(requests.exceptions.RequestException):
-            requests.get("https://invalid-url-that-does-not-exist.com", timeout=5)
+            requests.get(
+                "https://invalid-url-that-does-not-exist.com", timeout=5
+            )
 
 
 if __name__ == "__main__":
