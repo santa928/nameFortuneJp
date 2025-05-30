@@ -78,9 +78,7 @@ def generate() -> Any:
         for strokes in range(1, 21):
             # 仮の名として画数に対応する文字を使用
             test_name = get_character_by_strokes(strokes)
-            raw_fortune_result = scraper.get_fortune(
-                last_name, test_name, gender
-            )
+            raw_fortune_result = scraper.get_fortune(last_name, test_name, gender)
 
             if "error" not in raw_fortune_result:
                 # UIが期待する形式に変換
@@ -118,9 +116,7 @@ def analyze() -> Any:
         app.logger.debug(f"スクレイピング結果: {raw_results}")
 
         if "error" in raw_results:
-            app.logger.error(
-                f"スクレイピングエラー: {raw_results['error']}"
-            )
+            app.logger.error(f"スクレイピングエラー: {raw_results['error']}")
             error_response = ErrorResponse(error=str(raw_results["error"]))
             return jsonify(error_response.model_dump()), 500
 
@@ -136,9 +132,7 @@ def analyze() -> Any:
     except ValidationError as e:
         # Pydanticバリデーションエラー
         app.logger.warning(f"バリデーションエラー: {e}")
-        error_response = ErrorResponse(
-            error=f"入力データが不正です: {str(e)}"
-        )
+        error_response = ErrorResponse(error=f"入力データが不正です: {str(e)}")
         return jsonify(error_response.model_dump()), 400
 
     except Exception as e:
@@ -167,9 +161,7 @@ async def analyze_strokes() -> Any:
             if not last_name:
                 return jsonify({"error": "名字を入力してください"}), 400
             if not 1 <= char_count <= 3:
-                return jsonify(
-                    {"error": "文字数は1から3の間で指定してください"}
-                ), 400
+                return jsonify({"error": "文字数は1から3の間で指定してください"}), 400
 
             # 進捗情報用のIDを作成
             queue_id = f"{last_name}_{char_count}"
@@ -210,9 +202,7 @@ async def analyze_strokes() -> Any:
                             )
 
                             # 結果をJSONファイルに保存
-                            filename = (
-                                f"static/results_{last_name}_{char_count}字.json"
-                            )
+                            filename = f"static/results_{last_name}_{char_count}字.json"
                             os.makedirs("static", exist_ok=True)
                             await analyzer.save_results(results, filename)
 
@@ -275,13 +265,9 @@ def name_candidates_api() -> Any:
         if strokes1 is None:
             return jsonify({"error": "1文字目の画数を指定してください"}), 400
         if chars >= 2 and strokes2 is None:
-            return jsonify(
-                {"error": "2文字目の画数を指定してください"}
-            ), 400
+            return jsonify({"error": "2文字目の画数を指定してください"}), 400
         if chars >= 3 and strokes3 is None:
-            return jsonify(
-                {"error": "3文字目の画数を指定してください"}
-            ), 400
+            return jsonify({"error": "3文字目の画数を指定してください"}), 400
 
         # データベース検索
         candidates = get_name_candidates(
@@ -293,9 +279,7 @@ def name_candidates_api() -> Any:
         )
         # DBにデータがあれば即時返却
         if candidates:
-            return jsonify(
-                {"candidates": candidates, "count": len(candidates)}
-            )
+            return jsonify({"candidates": candidates, "count": len(candidates)})
         # データがなければバックグラウンドでスクレイピング実行
         job_id = f"{chars}_{strokes1}_{strokes2}_{strokes3}_{gender}"
         scraping_progress[job_id] = {"progress": 0, "status": "running"}

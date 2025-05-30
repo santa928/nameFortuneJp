@@ -47,9 +47,7 @@ def get_logger(name: str) -> Any:
 
 
 # アプリケーション用のログファクトリ
-def create_app_logger(
-    context: Optional[Dict[str, Any]] = None
-) -> Any:
+def create_app_logger(context: Optional[Dict[str, Any]] = None) -> Any:
     """アプリケーション用のログインスタンスを作成"""
     logger = get_logger("namefortune")
     if context:

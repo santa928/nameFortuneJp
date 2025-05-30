@@ -5,13 +5,13 @@
     <div class="form-container">
         <h2 class="section-title">画数パターン分析</h2>
         <p class="description">名字と希望の文字数を入力すると、最適な画数パターンを分析し、上位20件の結果を表示します。</p>
-        
+
         <form id="analyzeForm" class="analysis-form">
             <div class="form-group">
                 <label for="lastName">名字</label>
                 <input type="text" id="lastName" name="lastName" class="form-control" required>
             </div>
-            
+
             <div class="form-group">
                 <label>文字数</label>
                 <div class="char-count-selector">
@@ -29,7 +29,7 @@
                     </label>
                 </div>
             </div>
-            
+
             <button type="submit" class="analyze-button">
                 <span class="button-text">分析開始</span>
                 <div class="spinner-border spinner" role="status" style="display: none;">
@@ -287,10 +287,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
     form.addEventListener('submit', async function(e) {
         e.preventDefault();
-        
+
         const lastName = document.getElementById('lastName').value;
         const charCount = document.querySelector('input[name="charCount"]:checked').value;
-        
+
         // 3文字の場合は処理時間の警告を表示
         if (parseInt(charCount) === 3) {
             if (!confirm('3文字の分析には30分程度かかる場合があります。続けますか？')) {
@@ -304,7 +304,7 @@ document.addEventListener('DOMContentLoaded', function() {
         progressContainer.style.display = 'block';
         progressBar.style.width = '0%';
         progressText.textContent = '0';
-        
+
         // ボタンの状態を更新
         const button = form.querySelector('button[type="submit"]');
         const buttonText = button.querySelector('.button-text');
@@ -330,7 +330,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
 
             const data = await response.json();
-            
+
             if (data.success) {
                 // 進捗状況のポーリングを開始
                 const pollProgress = async () => {
@@ -339,18 +339,18 @@ document.addEventListener('DOMContentLoaded', function() {
                         if (!progressResponse.ok) {
                             throw new Error('進捗状況の取得に失敗しました');
                         }
-                        
+
                         const progressData = await progressResponse.json();
-                        
+
                         if (progressData.status === 'error') {
                             throw new Error(progressData.error || '分析中にエラーが発生しました');
                         }
-                        
+
                         // プログレスバーを更新
                         const progress = progressData.progress || 0;
                         progressBar.style.width = `${progress}%`;
                         progressText.textContent = Math.round(progress);
-                        
+
                         if (progressData.status === 'complete') {
                             // 分析完了
                             displayResults(progressData.results);
@@ -358,7 +358,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             progressContainer.style.display = 'none';
                             return;
                         }
-                        
+
                         // 1秒後に再度チェック
                         setTimeout(pollProgress, 1000);
                     } catch (error) {
@@ -367,7 +367,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         progressContainer.style.display = 'none';
                     }
                 };
-                
+
                 // ポーリングを開始
                 pollProgress();
             } else {
@@ -386,7 +386,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function displayResults(results) {
         resultsList.innerHTML = '';
-        document.getElementById('resultCount').textContent = 
+        document.getElementById('resultCount').textContent =
             `(上位${results.top_results.length}件 / 全${results.total_patterns}パターン)`;
 
         // 分析結果を保存
@@ -398,7 +398,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
             // 運勢結果をまとめる
             const fortuneCategories = {};
-            
+
             // enamae.netの結果を処理
             Object.entries(result.enamae_result).forEach(([category, value]) => {
                 if (!fortuneCategories[category]) {
@@ -408,7 +408,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     };
                 }
             });
-            
+
             // namaeuranai.bizの結果を処理
             Object.entries(result.namaeuranai_result).forEach(([category, value]) => {
                 if (!fortuneCategories[category]) {
@@ -460,10 +460,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
     downloadButton.addEventListener('click', function() {
         if (!analysisResults) return;
-        
+
         const lastName = document.getElementById('lastName').value;
         const charCount = document.querySelector('input[name="charCount"]:checked').value;
-        
+
         const blob = new Blob([JSON.stringify(analysisResults, null, 2)], {type: 'application/json'});
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
@@ -476,4 +476,4 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 </script>
-{% endblock %} 
+{% endblock %}

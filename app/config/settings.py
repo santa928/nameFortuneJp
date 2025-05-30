@@ -23,9 +23,7 @@ class Settings(BaseSettings):
 
     # アプリケーション設定
     timeout: int = Field(default=3600, alias="TIMEOUT")
-    max_concurrent_requests: int = Field(
-        default=4, alias="MAX_CONCURRENT_REQUESTS"
-    )
+    max_concurrent_requests: int = Field(default=4, alias="MAX_CONCURRENT_REQUESTS")
 
     # スクレイピング設定
     scraping_delay: float = Field(default=0.5, alias="SCRAPING_DELAY")
@@ -41,9 +39,7 @@ class Settings(BaseSettings):
     )
 
     # 外部API設定
-    enamae_base_url: str = Field(
-        default="https://enamae.net", alias="ENAMAE_BASE_URL"
-    )
+    enamae_base_url: str = Field(default="https://enamae.net", alias="ENAMAE_BASE_URL")
     namaeuranai_base_url: str = Field(
         default="https://namaeuranai.biz", alias="NAMAEURANAI_BASE_URL"
     )

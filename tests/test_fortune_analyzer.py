@@ -95,7 +95,9 @@ class TestFortuneAnalyzer(unittest.TestCase):
         ]
 
         for case in test_cases:
-            score = self.analyzer._calculate_namaeuranai_score(case["input"])  # type: ignore
+            score = self.analyzer._calculate_namaeuranai_score(
+                case["input"]
+            )  # type: ignore
             expected = case["expected"]
             self.assertAlmostEqual(score, expected, places=1)  # type: ignore
 

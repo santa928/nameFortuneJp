@@ -66,9 +66,7 @@ class FortuneAnalyzer:
         self,
         last_name: str,
         char_count: int,
-        progress_callback: Optional[
-            Callable[[float, List[int]], Any]
-        ] = None,
+        progress_callback: Optional[Callable[[float, List[int]], Any]] = None,
     ) -> Dict[str, Any]:
         """指定された文字数の画数パターンを分析
 
@@ -104,9 +102,7 @@ class FortuneAnalyzer:
                 await progress_callback(progress_rate, pattern)
 
             # スコア計算のデバッグログを追加
-            enamae_score = self._calculate_enamae_score(
-                fortune_result["enamae"]
-            )
+            enamae_score = self._calculate_enamae_score(fortune_result["enamae"])
             namaeuranai_score = self._calculate_namaeuranai_score(
                 fortune_result["namaeuranai"]
             )
@@ -115,9 +111,7 @@ class FortuneAnalyzer:
             logger.debug(f"Pattern {pattern} ({name}):")
             logger.debug(f"enamae result: {fortune_result['enamae']}")
             logger.debug(f"enamae score: {enamae_score}")
-            logger.debug(
-                f"namaeuranai result: {fortune_result['namaeuranai']}"
-            )
+            logger.debug(f"namaeuranai result: {fortune_result['namaeuranai']}")
             logger.debug(f"namaeuranai score: {namaeuranai_score}")
             logger.debug(f"total score: {total_score}")
 
@@ -144,9 +138,9 @@ class FortuneAnalyzer:
         results = await asyncio.gather(*tasks)
 
         # スコアで降順ソートして上位20件を取得
-        sorted_results = sorted(
-            results, key=lambda x: x["total_score"], reverse=True
-        )[:20]
+        sorted_results = sorted(results, key=lambda x: x["total_score"], reverse=True)[
+            :20
+        ]
 
         return {
             "generated_at": datetime.now().isoformat(),
@@ -156,9 +150,7 @@ class FortuneAnalyzer:
             "top_results": sorted_results,
         }
 
-    def _calculate_total_score(
-        self, fortune_result: Dict[str, Any]
-    ) -> float:
+    def _calculate_total_score(self, fortune_result: Dict[str, Any]) -> float:
         """運勢結果からトータルスコアを計算
 
         Args:

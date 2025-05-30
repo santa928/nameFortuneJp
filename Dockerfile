@@ -54,4 +54,4 @@ CMD ["python", "-m", "app.main"]
 
 # より詳細なヘルスチェック
 HEALTHCHECK --interval=30s --timeout=10s --retries=3 --start-period=40s \
-    CMD curl -f http://localhost:5000/healthz || exit 1 
+    CMD curl -f http://localhost:5000/healthz || exit 1

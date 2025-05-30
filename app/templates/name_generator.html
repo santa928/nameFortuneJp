@@ -3,7 +3,7 @@
 {% block content %}
 <div class="container mt-5">
     <h1 class="text-center mb-4">名前生成</h1>
-    
+
     <div class="row justify-content-center">
         <div class="col-md-6">
             <div class="card">
@@ -20,7 +20,7 @@
                                 <label class="form-check-label" for="female">女</label>
                             </div>
                         </div>
-                        
+
                         <div class="mb-3">
                             <label class="form-label">画数入力</label>
                             <div class="input-group mb-2">
@@ -36,7 +36,7 @@
                                 <input type="number" class="form-control" id="strokes3" min="1">
                             </div>
                         </div>
-                        
+
                         <button type="submit" class="btn btn-primary w-100">生成</button>
                     </form>
                 </div>
@@ -71,7 +71,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const strokes1Input = document.getElementById('strokes1');
     const strokes2Input = document.getElementById('strokes2');
     const strokes3Input = document.getElementById('strokes3');
-    const downloadBtn = document.getElementById('downloadCsv');    
+    const downloadBtn = document.getElementById('downloadCsv');
     let currentCandidates = [];
     const progressContainer = document.getElementById('progressContainer');
     const progressBar = document.getElementById('progressBar');
@@ -83,7 +83,7 @@ document.addEventListener('DOMContentLoaded', () => {
         downloadBtn.style.display = 'none';
         progressContainer.style.display = 'none';
         progressBar.style.width = '0%';
-        
+
         const gender = document.querySelector('input[name="gender"]:checked').value;
         const s1 = parseInt(strokes1Input.value, 10);
         const s2 = strokes2Input.value ? parseInt(strokes2Input.value, 10) : null;
@@ -92,7 +92,7 @@ document.addEventListener('DOMContentLoaded', () => {
         let chars = 1;
         if (s2 !== null) chars = 2;
         if (s3 !== null) chars = 3;
-        
+
         try {
             const query = new URLSearchParams({
                 chars: chars,
@@ -147,7 +147,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function displayResults(data) {
         const resultsDiv = document.getElementById('results');
         const resultsContent = document.getElementById('resultsContent');
-        
+
         let html = `
             <h3 class="text-center mb-3">名前候補</h3>
             <div class="table-responsive">
@@ -175,7 +175,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 </table>
             </div>
         `;
-        
+
         resultsContent.innerHTML = html;
         resultsDiv.style.display = 'block';
     }
@@ -197,4 +197,4 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
 </script>
-{% endblock %} 
+{% endblock %}

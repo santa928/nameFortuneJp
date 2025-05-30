@@ -58,12 +58,8 @@ class NameFortuneScraper:
 
         # 結果を結合
         results = {
-            "enamae.net": self._sort_results(
-                enamae_results, is_enamae=True
-            ),
-            "namaeuranai.biz": self._sort_results(
-                namaeuranai_results, is_enamae=False
-            ),
+            "enamae.net": self._sort_results(enamae_results, is_enamae=True),
+            "namaeuranai.biz": self._sort_results(namaeuranai_results, is_enamae=False),
         }
 
         self.logger.info(
@@ -86,9 +82,7 @@ class NameFortuneScraper:
                 sorted_results[f"{key}_説明"] = results[f"{key}_説明"]
 
         # サイト固有の項目を追加
-        site_keys = (
-            self.ENAMAE_ONLY_KEYS if is_enamae else self.NAMAEURANAI_ONLY_KEYS
-        )
+        site_keys = self.ENAMAE_ONLY_KEYS if is_enamae else self.NAMAEURANAI_ONLY_KEYS
         for key in site_keys:
             if key in results:
                 sorted_results[key] = results[key]
@@ -151,10 +145,7 @@ class NameFortuneScraper:
             first_encoded = urllib.parse.quote(first_name)
             encoded_name = f"{last_encoded}_{first_encoded}"
             gender_encoded = urllib.parse.quote(gender_str)
-            url = (
-                f"{self.NAMAEURANAI_URL}/result/{encoded_name}/"
-                f"{gender_encoded}"
-            )
+            url = f"{self.NAMAEURANAI_URL}/result/{encoded_name}/" f"{gender_encoded}"
             self.logger.debug(f"namaeuranai.biz リクエストURL: {url}")
 
             # namaeuranai.bizの SSL証明書問題を回避（開発環境のみ）
@@ -165,8 +156,7 @@ class NameFortuneScraper:
                 response.raise_for_status()
             except requests.exceptions.SSLError:
                 self.logger.warning(
-                    "namaeuranai.biz: SSL証明書エラーのため、"
-                    "検証を無効化して再試行"
+                    "namaeuranai.biz: SSL証明書エラーのため、" "検証を無効化して再試行"
                 )
                 # SSL検証を無効化して再試行
                 response = requests.get(url, timeout=30, verify=False)  # nosec B501
@@ -221,9 +211,7 @@ class NameFortuneScraper:
                     fortune_match = re.search(r"『(.+?)』で『(.+?)』", text)
                     if fortune_match:
                         results["三才配置"] = fortune_match.group(2)  # 運勢（凶）
-                        results["三才配置_説明"] = (
-                            f"配置: {fortune_match.group(1)}"
-                        )
+                        results["三才配置_説明"] = f"配置: {fortune_match.group(1)}"
                         next_p = h2.find_next("p")
                         if next_p:
                             results["三才配置_説明"] += f"\n{next_p.text.strip()}"
@@ -296,8 +284,7 @@ class NameFortuneScraper:
                     desc_text = description.text.strip()
                     results[f"{key}_説明"] = desc_text
                     self.logger.debug(
-                        f"namaeuranai.biz: '{key}' の説明文: "
-                        f"{desc_text[:50]}..."
+                        f"namaeuranai.biz: '{key}' の説明文: " f"{desc_text[:50]}..."
                     )
 
             # サイト固有の項目を抽出
@@ -327,16 +314,14 @@ class NameFortuneScraper:
                     desc_text = description.text.strip()
                     results[f"{key}_説明"] = desc_text
                     self.logger.debug(
-                        f"namaeuranai.biz: '{key}' の説明文: "
-                        f"{desc_text[:50]}..."
+                        f"namaeuranai.biz: '{key}' の説明文: " f"{desc_text[:50]}..."
                     )
 
             if not results:
                 self.logger.warning("namaeuranai.biz: 結果が抽出できませんでした")
                 # デバッグ用にHTMLの一部を出力
                 self.logger.debug(
-                    f"namaeuranai.biz: HTMLの一部: "
-                    f"{soup.prettify()[:1000]}"
+                    f"namaeuranai.biz: HTMLの一部: " f"{soup.prettify()[:1000]}"
                 )
             else:
                 self.logger.info(

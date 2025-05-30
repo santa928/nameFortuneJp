@@ -90,9 +90,7 @@ class TestScraper(unittest.TestCase):
         """無効なURLの処理テスト"""
         # 無効なURLでのテスト
         with self.assertRaises(requests.exceptions.RequestException):
-            requests.get(
-                "https://invalid-url-that-does-not-exist.com", timeout=5
-            )
+            requests.get("https://invalid-url-that-does-not-exist.com", timeout=5)
 
 
 if __name__ == "__main__":

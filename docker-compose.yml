@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   web:
-    build: 
+    build:
       context: .
       dockerfile: Dockerfile
     ports:
@@ -51,7 +51,7 @@ services:
 
   # 開発用のテストランナー
   test:
-    build: 
+    build:
       context: .
       dockerfile: Dockerfile
     volumes:

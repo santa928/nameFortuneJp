@@ -131,4 +131,3 @@ docker-compose exec web python ingest_runner.py --chars 1 --strokes1 5 --gender 
 1. GitHubリポジトリの「Security」タブにアクセス
 2. 「Code scanning alerts」で検出された脆弱性を確認
 3. 各アラートの詳細と修正提案を確認
-

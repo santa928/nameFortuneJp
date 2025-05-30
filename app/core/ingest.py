@@ -40,8 +40,7 @@ def ingest_pattern(
 
     strokes_param = ",".join(str(s) for s in strokes_values)
     base_url = (
-        f"https://b-name.jp/赤ちゃん名前辞典/{sex_path}/jikaku/"
-        f"{strokes_param}/"
+        f"https://b-name.jp/赤ちゃん名前辞典/{sex_path}/jikaku/" f"{strokes_param}/"
     )
 
     # 初期文字選択ページを取得し、div.malenamelist_boxから文字リンクを抽出
@@ -62,9 +61,7 @@ def ingest_pattern(
                 name = name_tag.get_text(strip=True) if name_tag else ""
                 yomi = yomi_tag.get_text(strip=True) if yomi_tag else ""
                 source_url = (
-                    "https://b-name.jp" + str(detail_href)
-                    if detail_href
-                    else ""
+                    "https://b-name.jp" + str(detail_href) if detail_href else ""
                 )
                 total = sum(s for s in strokes_values if s is not None)
                 try:
@@ -81,12 +78,8 @@ def ingest_pattern(
                             yomi,
                             chars,
                             strokes_values[0],
-                            strokes_values[1]
-                            if len(strokes_values) > 1
-                            else None,
-                            strokes_values[2]
-                            if len(strokes_values) > 2
-                            else None,
+                            strokes_values[1] if len(strokes_values) > 1 else None,
+                            strokes_values[2] if len(strokes_values) > 2 else None,
                             total,
                             gender,
                             source_url,
@@ -145,12 +138,8 @@ def ingest_pattern(
                             yomi,
                             chars,
                             strokes_values[0],
-                            strokes_values[1]
-                            if len(strokes_values) > 1
-                            else None,
-                            strokes_values[2]
-                            if len(strokes_values) > 2
-                            else None,
+                            strokes_values[1] if len(strokes_values) > 1 else None,
+                            strokes_values[2] if len(strokes_values) > 2 else None,
                             total,
                             gender,
                             detail_url,
