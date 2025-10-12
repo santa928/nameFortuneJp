@@ -15,7 +15,6 @@ class Settings(BaseSettings):
     flask_debug: bool = Field(default=True, alias="FLASK_DEBUG")
     secret_key: str = Field(default="dev-key", alias="SECRET_KEY")
 
-
     # ログ設定
     log_level: str = Field(default="DEBUG", alias="LOG_LEVEL")
 

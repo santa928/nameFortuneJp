@@ -50,9 +50,6 @@ def index() -> Any:
     return render_template("index.html")
 
 
- 
-
-
 @app.route("/analyze", methods=["POST"])
 def analyze() -> Any:
     """姓名判断API - Pydanticモデルを使用した型安全な実装"""
@@ -201,9 +198,6 @@ async def analyze_strokes() -> Any:
             return jsonify({"error": str(e)}), 500
 
     return render_template("analyze_strokes.html")
-
-
- 
 
 
 @app.route("/healthz")

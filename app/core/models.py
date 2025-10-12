@@ -31,9 +31,6 @@ class StrokeAnalysisRequest(BaseModel):
     char_count: int = Field(..., ge=1, le=3, description="文字数")
 
 
- 
-
-
 class FortuneResult(BaseModel):
     """運勢結果モデル"""
 
@@ -73,12 +70,6 @@ class AnalysisResult(BaseModel):
     char_count: int = Field(..., ge=1, le=3)
     total_patterns: int = Field(..., ge=0)
     top_results: List[StrokePattern] = Field(..., max_length=20)
-
-
- 
-
-
- 
 
 
 class ErrorResponse(BaseModel):
