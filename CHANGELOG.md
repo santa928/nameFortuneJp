@@ -6,5 +6,3 @@
 - Chore: docker-compose（test）から DB 変数を削除
 - Docs: 仕様書・画数別運勢一覧機能仕様書を「データ保存: JSON」に統一
 - QA: UIスモーク（`/` と `/analyze_strokes`）、`/healthz` OK／pytest 10件 pass
-
-
