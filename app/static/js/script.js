@@ -5,7 +5,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     fortuneForm.addEventListener('submit', function(e) {
         e.preventDefault();
-        
+
         const lastName = document.getElementById('last-name').value.trim();
         const firstName = document.getElementById('first-name').value.trim();
         const gender = document.querySelector('input[name="gender"]:checked').value;
@@ -155,4 +155,4 @@ document.addEventListener('DOMContentLoaded', function() {
             element.classList.add(className);
         }
     }
-}); 
+});
