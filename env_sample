@@ -6,10 +6,6 @@ FLASK_HOST=0.0.0.0
 FLASK_PORT=5000
 SECRET_KEY=your-secret-key-here
 
-# データベース設定
-DATABASE_PATH=names.db
-NAME_DB_PATH=names.db
-
 # ログレベル設定
 LOG_LEVEL=INFO
 

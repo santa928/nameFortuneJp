@@ -11,13 +11,11 @@ from flask import Flask, jsonify, render_template, request
 from pydantic import ValidationError
 from werkzeug.serving import WSGIRequestHandler
 
-from app.core.fortune_analyzer import FortuneAnalyzer, get_character_by_strokes
-from app.core.ingest import ingest_pattern
+from app.core.fortune_analyzer import FortuneAnalyzer
 
 # ロギング設定を中央集権化
 from app.core.logging_config import setup_logging
 from app.core.models import ErrorResponse, FortuneRequest
-from app.core.name_generator import get_name_candidates, init_db
 
 # ローカルアプリケーション
 from app.core.scraper import create_scraper
@@ -34,11 +32,7 @@ scraper = create_scraper()
 
 # プログレス情報を保持するグローバル変数
 analysis_progress: Dict[str, Any] = {}
-# スクレイピング用進捗情報を保持するグローバル変数
-scraping_progress: Dict[str, Any] = {}
 
-# 名前候補データベース初期化
-init_db()
 
 # 先にロギングを初期化
 setup_logging()
@@ -56,43 +50,7 @@ def index() -> Any:
     return render_template("index.html")
 
 
-@app.route("/name_generator")
-def name_generator() -> Any:
-    return render_template("name_generator.html")
-
-
-@app.route("/generate", methods=["POST"])
-def generate() -> Any:
-    try:
-        data = request.get_json()
-        last_name = data.get("last_name", "")
-        gender = data.get("gender", "m")
-
-        app.logger.debug(f"リクエスト: 姓={last_name}, 性別={gender}")
-
-        if not last_name:
-            return jsonify({"error": "名字を入力してください"}), 400
-
-        # 1画から20画までの結果を取得
-        results = {}
-        for strokes in range(1, 21):
-            # 仮の名として画数に対応する文字を使用
-            test_name = get_character_by_strokes(strokes)
-            raw_fortune_result = scraper.get_fortune(last_name, test_name, gender)
-
-            if "error" not in raw_fortune_result:
-                # UIが期待する形式に変換
-                fortune_result = {
-                    "enamae": raw_fortune_result.get("enamae.net", {}),
-                    "namaeuranai": raw_fortune_result.get("namaeuranai.biz", {}),
-                }
-                results[str(strokes)] = fortune_result
-
-        return jsonify({"last_name": last_name, "results": results})
-
-    except Exception as e:
-        app.logger.exception("予期せぬエラーが発生しました")
-        return jsonify({"error": f"サーバーエラー: {str(e)}"}), 500
+ 
 
 
 @app.route("/analyze", methods=["POST"])
@@ -245,89 +203,7 @@ async def analyze_strokes() -> Any:
     return render_template("analyze_strokes.html")
 
 
-@app.route("/api/v1/name_candidates", methods=["GET"])
-def name_candidates_api() -> Any:
-    """指定された画数・文字数・性別に合致する名前候補を返すAPI"""
-    try:
-        # パラメータ取得
-        chars = request.args.get("chars", type=int)
-        strokes1 = request.args.get("strokes1", type=int)
-        strokes2 = request.args.get("strokes2", type=int)
-        strokes3 = request.args.get("strokes3", type=int)
-        gender = request.args.get("gender", "male")
-
-        # バリデーション
-        if chars not in (1, 2, 3):
-            return (
-                jsonify({"error": "文字数は1,2,3のいずれかを指定してください"}),
-                400,
-            )
-        if strokes1 is None:
-            return jsonify({"error": "1文字目の画数を指定してください"}), 400
-        if chars >= 2 and strokes2 is None:
-            return jsonify({"error": "2文字目の画数を指定してください"}), 400
-        if chars >= 3 and strokes3 is None:
-            return jsonify({"error": "3文字目の画数を指定してください"}), 400
-
-        # データベース検索
-        candidates = get_name_candidates(
-            chars=chars,
-            strokes1=strokes1,
-            strokes2=strokes2,
-            strokes3=strokes3,
-            gender=gender,
-        )
-        # DBにデータがあれば即時返却
-        if candidates:
-            return jsonify({"candidates": candidates, "count": len(candidates)})
-        # データがなければバックグラウンドでスクレイピング実行
-        job_id = f"{chars}_{strokes1}_{strokes2}_{strokes3}_{gender}"
-        scraping_progress[job_id] = {"progress": 0, "status": "running"}
-
-        def run_scraping() -> None:
-            try:
-                # データ投入
-                ingest_pattern(
-                    chars=chars,
-                    strokes1=strokes1,
-                    strokes2=strokes2,
-                    strokes3=strokes3,
-                    gender=gender,
-                )
-                # スクレイピング後のDB検索
-                new_cands = get_name_candidates(
-                    chars=chars,
-                    strokes1=strokes1,
-                    strokes2=strokes2,
-                    strokes3=strokes3,
-                    gender=gender,
-                )
-                scraping_progress[job_id] = {
-                    "progress": 100,
-                    "status": "complete",
-                    "candidates": new_cands,
-                }
-            except Exception as e:
-                scraping_progress[job_id] = {
-                    "progress": -1,
-                    "status": "error",
-                    "error": str(e),
-                }
-
-        thread = threading.Thread(target=run_scraping)
-        thread.daemon = True
-        thread.start()
-        return jsonify({"scraping": True, "job_id": job_id}), 202
-    except Exception as e:
-        app.logger.exception("名前候補生成APIでエラーが発生しました")
-        return jsonify({"error": f"サーバーエラー: {str(e)}"}), 500
-
-
-@app.route("/api/v1/name_candidates_progress/<job_id>")
-def name_candidates_progress(job_id: str) -> Any:
-    """バックグラウンドスクレイピングの進捗を返却するAPI"""
-    progress = scraping_progress.get(job_id, {})
-    return jsonify(progress)
+ 
 
 
 @app.route("/healthz")

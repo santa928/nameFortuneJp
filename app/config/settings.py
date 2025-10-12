@@ -15,8 +15,6 @@ class Settings(BaseSettings):
     flask_debug: bool = Field(default=True, alias="FLASK_DEBUG")
     secret_key: str = Field(default="dev-key", alias="SECRET_KEY")
 
-    # データベース設定
-    database_path: str = Field(default="names.db", alias="DATABASE_PATH")
 
     # ログ設定
     log_level: str = Field(default="DEBUG", alias="LOG_LEVEL")
