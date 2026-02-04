@@ -2,6 +2,29 @@ document.addEventListener('DOMContentLoaded', function() {
     const fortuneForm = document.getElementById('fortune-form');
     const resultSection = document.getElementById('result-section');
     const resultName = document.getElementById('result-name');
+    const fortuneTypes = {
+        '天格': 'tenkaku',
+        '人格': 'jinkaku',
+        '地格': 'jikaku',
+        '外格': 'gaikaku',
+        '総格': 'soukaku'
+    };
+    const fortuneClasses = {
+        '大吉': 'daikichi',
+        '中吉': 'chukichi',
+        '小吉': 'shokichi',
+        '吉': 'kichi',
+        '末吉': 'suekichi',
+        '凶': 'kyo',
+        '大凶': 'daikyo',
+        '半吉': 'hankichi',
+        '半凶': 'hankyo'
+    };
+
+    function setSubmitState(submitButton, originalButtonText, isLoading) {
+        submitButton.disabled = isLoading;
+        submitButton.textContent = isLoading ? '取得中...' : originalButtonText;
+    }
 
     fortuneForm.addEventListener('submit', function(e) {
         e.preventDefault();
@@ -18,8 +41,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // ローディング表示
         const submitButton = this.querySelector('button[type="submit"]');
         const originalButtonText = submitButton.textContent;
-        submitButton.disabled = true;
-        submitButton.textContent = '取得中...';
+        setSubmitState(submitButton, originalButtonText, true);
 
         // 結果セクションを非表示
         resultSection.style.display = 'none';
@@ -44,8 +66,7 @@ document.addEventListener('DOMContentLoaded', function() {
         })
         .then(data => {
             // ボタンを元に戻す
-            submitButton.disabled = false;
-            submitButton.textContent = originalButtonText;
+            setSubmitState(submitButton, originalButtonText, false);
 
             if (data.error) {
                 alert('エラー: ' + data.error);
@@ -59,8 +80,7 @@ document.addEventListener('DOMContentLoaded', function() {
             alert('エラーが発生しました: ' + error.message);
 
             // ボタンを元に戻す
-            submitButton.disabled = false;
-            submitButton.textContent = originalButtonText;
+            setSubmitState(submitButton, originalButtonText, false);
         });
     });
 
@@ -70,14 +90,6 @@ document.addEventListener('DOMContentLoaded', function() {
         resultName.textContent = lastName + firstName + 'さん（' + genderText + '）の姓名判断結果';
 
         // 各運勢の結果を表示
-        const fortuneTypes = {
-            '天格': 'tenkaku',
-            '人格': 'jinkaku',
-            '地格': 'jikaku',
-            '外格': 'gaikaku',
-            '総格': 'soukaku'
-        };
-
         // 既存の説明文を削除
         document.querySelectorAll('.result-description').forEach(el => el.remove());
 
@@ -85,7 +97,6 @@ document.addEventListener('DOMContentLoaded', function() {
         Object.entries(fortuneTypes).forEach(([type, id]) => {
             const resultDiv = document.getElementById(`${id}-result`);
             if (resultDiv && data[type]) {
-                const valueElement = resultDiv.querySelector('.result-value');
                 const fortuneElement = resultDiv.querySelector('.result-fortune');
 
                 // 運勢を表示
@@ -138,18 +149,6 @@ document.addEventListener('DOMContentLoaded', function() {
         element.classList.remove('daikichi', 'chukichi', 'shokichi', 'kichi', 'suekichi', 'kyo', 'daikyo', 'hankichi', 'hankyo');
 
         // 運勢に応じたクラスを追加
-        const fortuneClasses = {
-            '大吉': 'daikichi',
-            '中吉': 'chukichi',
-            '小吉': 'shokichi',
-            '吉': 'kichi',
-            '末吉': 'suekichi',
-            '凶': 'kyo',
-            '大凶': 'daikyo',
-            '半吉': 'hankichi',
-            '半凶': 'hankyo'
-        };
-
         const className = fortuneClasses[fortune];
         if (className) {
             element.classList.add(className);

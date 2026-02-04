@@ -1,17 +1,13 @@
 # 標準ライブラリ
-import asyncio
 import json
 import logging
 import os
-import threading
-from typing import Any, Dict, List
+from typing import Any
 
 # サードパーティライブラリ
 from flask import Flask, jsonify, render_template, request
 from pydantic import ValidationError
 from werkzeug.serving import WSGIRequestHandler
-
-from app.core.fortune_analyzer import FortuneAnalyzer
 
 # ロギング設定を中央集権化
 from app.core.logging_config import setup_logging
@@ -19,6 +15,7 @@ from app.core.models import ErrorResponse, FortuneRequest
 
 # ローカルアプリケーション
 from app.core.scraper import create_scraper
+from app.core.stroke_analysis import AnalysisProgressStore, StrokeAnalysisService
 
 # タイムアウトを60分に設定
 WSGIRequestHandler.protocol_version = "HTTP/1.1"
@@ -29,9 +26,8 @@ app.secret_key = os.urandom(24)
 app.logger.setLevel(logging.DEBUG)
 app.config["TIMEOUT"] = 3600
 scraper = create_scraper()
-
-# プログレス情報を保持するグローバル変数
-analysis_progress: Dict[str, Any] = {}
+progress_store = AnalysisProgressStore()
+stroke_analysis_service = StrokeAnalysisService(progress_store)
 
 
 # 先にロギングを初期化
@@ -99,7 +95,7 @@ def analyze() -> Any:
 @app.route("/analyze_progress/<queue_id>")
 def get_progress(queue_id: str) -> Any:
     """進捗状況を返すエンドポイント"""
-    progress = analysis_progress.get(queue_id, {})
+    progress = progress_store.get(queue_id)
     return jsonify(progress)
 
 
@@ -118,78 +114,7 @@ async def analyze_strokes() -> Any:
             if not 1 <= char_count <= 3:
                 return jsonify({"error": "文字数は1から3の間で指定してください"}), 400
 
-            # 進捗情報用のIDを作成
-            queue_id = f"{last_name}_{char_count}"
-
-            # 進捗状況を初期化
-            analysis_progress[queue_id] = {"progress": 0, "status": "running"}
-
-            # バックグラウンドタスクとして分析を実行
-            def run_analysis() -> None:
-                try:
-                    loop = asyncio.new_event_loop()
-                    asyncio.set_event_loop(loop)
-
-                    async def analyze() -> None:
-                        try:
-                            # 分析実行（性別は男性固定）
-                            analyzer = FortuneAnalyzer()
-
-                            # 進捗コールバック関数
-                            async def progress_callback(
-                                progress_rate: float, pattern: List[int]
-                            ) -> None:
-                                analysis_progress[queue_id] = {
-                                    "progress": progress_rate,
-                                    "status": "running",
-                                    "pattern": pattern,
-                                }
-                                app.logger.debug(
-                                    f"Progress for {queue_id}: "
-                                    f"{progress_rate}%, Pattern: {pattern}"
-                                )
-
-                            # 分析実行
-                            results = await analyzer.analyze(
-                                last_name=last_name,
-                                char_count=char_count,
-                                progress_callback=progress_callback,
-                            )
-
-                            # 結果をJSONファイルに保存
-                            filename = f"static/results_{last_name}_{char_count}字.json"
-                            os.makedirs("static", exist_ok=True)
-                            await analyzer.save_results(results, filename)
-
-                            # 完了を通知
-                            analysis_progress[queue_id] = {
-                                "progress": 100,
-                                "status": "complete",
-                                "results": results,
-                            }
-
-                        except Exception as e:
-                            app.logger.exception("分析処理中にエラーが発生しました")
-                            analysis_progress[queue_id] = {
-                                "progress": -1,
-                                "status": "error",
-                                "error": str(e),
-                            }
-
-                    loop.run_until_complete(analyze())
-                    loop.close()
-
-                except Exception as e:
-                    app.logger.exception("分析スレッドでエラーが発生しました")
-                    analysis_progress[queue_id] = {
-                        "progress": -1,
-                        "status": "error",
-                        "error": str(e),
-                    }
-
-            thread = threading.Thread(target=run_analysis)
-            thread.daemon = True
-            thread.start()
+            queue_id = stroke_analysis_service.start_analysis(last_name, char_count)
 
             return jsonify({"success": True, "queue_id": queue_id}), 202  # Accepted
 

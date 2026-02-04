@@ -102,11 +102,9 @@ class FortuneAnalyzer:
                 await progress_callback(progress_rate, pattern)
 
             # スコア計算のデバッグログを追加
-            enamae_score = self._calculate_enamae_score(fortune_result["enamae"])
-            namaeuranai_score = self._calculate_namaeuranai_score(
-                fortune_result["namaeuranai"]
+            enamae_score, namaeuranai_score, total_score = self._calculate_scores(
+                fortune_result
             )
-            total_score = (enamae_score + namaeuranai_score) / 2
 
             logger.debug(f"Pattern {pattern} ({name}):")
             logger.debug(f"enamae result: {fortune_result['enamae']}")
@@ -159,11 +157,19 @@ class FortuneAnalyzer:
         Returns:
             float: トータルスコア
         """
+        _, _, total_score = self._calculate_scores(fortune_result)
+        return total_score
+
+    def _calculate_scores(
+        self, fortune_result: Dict[str, Any]
+    ) -> tuple[float, float, float]:
+        """運勢結果からスコア一式を計算"""
         enamae_score = self._calculate_enamae_score(fortune_result["enamae"])
         namaeuranai_score = self._calculate_namaeuranai_score(
             fortune_result["namaeuranai"]
         )
-        return (enamae_score + namaeuranai_score) / 2
+        total_score = (enamae_score + namaeuranai_score) / 2
+        return enamae_score, namaeuranai_score, total_score
 
     def _calculate_enamae_score(self, result: Dict[str, str]) -> float:
         """enamae.netの結果からスコアを計算"""
