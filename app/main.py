@@ -77,7 +77,9 @@ def analyze() -> Any:
         # scraper はプロバイダー障害時に空辞書を返すため、両方が空なら
         # 正常な姓名判断結果ではなく upstream failure として扱う。
         if not _has_provider_result(raw_results):
-            app.logger.error("すべての姓名判断プロバイダーから結果を取得できませんでした")
+            app.logger.error(
+                "すべての姓名判断プロバイダーから結果を取得できませんでした"
+            )
             error_response = ErrorResponse(
                 error="姓名判断サービスから結果を取得できませんでした。時間をおいて再試行してください。",
                 error_code="PROVIDER_UNAVAILABLE",
