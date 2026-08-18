@@ -58,13 +58,17 @@ class TestScraper(unittest.TestCase):
         self.assertIn("namaeuranai.biz", result)
 
         # enamae.net の結果確認
-        enamae_result = result["enamae.net"]
+        enamae_provider = result["enamae.net"]
+        self.assertTrue(enamae_provider["success"])
+        enamae_result = enamae_provider["data"]
         self.assertIn("天格", enamae_result)
         self.assertIn("人格", enamae_result)
         self.assertIn("地格", enamae_result)
 
         # namaeuranai.biz の結果確認
-        namaeuranai_result = result["namaeuranai.biz"]
+        namaeuranai_provider = result["namaeuranai.biz"]
+        self.assertTrue(namaeuranai_provider["success"])
+        namaeuranai_result = namaeuranai_provider["data"]
         self.assertIn("天格", namaeuranai_result)
         self.assertIn("人格", namaeuranai_result)
         self.assertIn("地格", namaeuranai_result)

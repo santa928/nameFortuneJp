@@ -66,15 +66,34 @@ def analyze() -> Any:
         )
         app.logger.debug(f"スクレイピング結果: {raw_results}")
 
-        if "error" in raw_results:
-            app.logger.error(f"スクレイピングエラー: {raw_results['error']}")
-            error_response = ErrorResponse(error=str(raw_results["error"]))
-            return jsonify(error_response.model_dump()), 500
+        failed_providers = [
+            provider_name
+            for provider_name, provider_result in raw_results.items()
+            if not provider_result["success"]
+        ]
 
-        # UIが期待する形式に変換
+        if len(failed_providers) == len(raw_results):
+            errors = "; ".join(
+                provider_result["error"] or provider_name
+                for provider_name, provider_result in raw_results.items()
+            )
+            app.logger.error(f"全外部サイトの取得に失敗しました: {errors}")
+            error_response = ErrorResponse(
+                error=f"外部サイトから姓名判断結果を取得できませんでした: {errors}",
+                error_code="UPSTREAM_ERROR",
+            )
+            return jsonify(error_response.model_dump()), 502
+
+        if failed_providers:
+            app.logger.warning(
+                "一部の外部サイトの取得に失敗しました: %s",
+                ", ".join(failed_providers),
+            )
+
+        # UIが期待する形式に変換。失敗したproviderは空結果として返す。
         results = {
-            "enamae": raw_results.get("enamae.net", {}),
-            "namaeuranai": raw_results.get("namaeuranai.biz", {}),
+            "enamae": raw_results["enamae.net"]["data"],
+            "namaeuranai": raw_results["namaeuranai.biz"]["data"],
         }
 
         app.logger.debug(f"変換後の結果: {results}")

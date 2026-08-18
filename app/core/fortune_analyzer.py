@@ -93,8 +93,12 @@ class FortuneAnalyzer:
 
             # UIが期待する形式に変換
             fortune_result = {
-                "enamae": raw_fortune_result.get("enamae.net", {}),
-                "namaeuranai": raw_fortune_result.get("namaeuranai.biz", {}),
+                "enamae": raw_fortune_result["enamae.net"]["data"],
+                "namaeuranai": raw_fortune_result["namaeuranai.biz"]["data"],
+            }
+            provider_success = {
+                "enamae": raw_fortune_result["enamae.net"]["success"],
+                "namaeuranai": raw_fortune_result["namaeuranai.biz"]["success"],
             }
 
             if progress_callback:
@@ -103,7 +107,8 @@ class FortuneAnalyzer:
 
             # スコア計算のデバッグログを追加
             enamae_score, namaeuranai_score, total_score = self._calculate_scores(
-                fortune_result
+                fortune_result,
+                provider_success=provider_success,
             )
 
             logger.debug(f"Pattern {pattern} ({name}):")
@@ -111,6 +116,7 @@ class FortuneAnalyzer:
             logger.debug(f"enamae score: {enamae_score}")
             logger.debug(f"namaeuranai result: {fortune_result['namaeuranai']}")
             logger.debug(f"namaeuranai score: {namaeuranai_score}")
+            logger.debug(f"provider success: {provider_success}")
             logger.debug(f"total score: {total_score}")
 
             return {
@@ -148,27 +154,51 @@ class FortuneAnalyzer:
             "top_results": sorted_results,
         }
 
-    def _calculate_total_score(self, fortune_result: Dict[str, Any]) -> float:
+    def _calculate_total_score(
+        self,
+        fortune_result: Dict[str, Any],
+        provider_success: Optional[Dict[str, bool]] = None,
+    ) -> float:
         """運勢結果からトータルスコアを計算
 
         Args:
             fortune_result (Dict[str, Any]): 運勢結果
+            provider_success: providerごとの取得成功状態
 
         Returns:
             float: トータルスコア
         """
-        _, _, total_score = self._calculate_scores(fortune_result)
+        _, _, total_score = self._calculate_scores(
+            fortune_result,
+            provider_success=provider_success,
+        )
         return total_score
 
     def _calculate_scores(
-        self, fortune_result: Dict[str, Any]
+        self,
+        fortune_result: Dict[str, Any],
+        provider_success: Optional[Dict[str, bool]] = None,
     ) -> tuple[float, float, float]:
         """運勢結果からスコア一式を計算"""
+        provider_success = provider_success or {
+            "enamae": True,
+            "namaeuranai": True,
+        }
+
         enamae_score = self._calculate_enamae_score(fortune_result["enamae"])
         namaeuranai_score = self._calculate_namaeuranai_score(
             fortune_result["namaeuranai"]
         )
-        total_score = (enamae_score + namaeuranai_score) / 2
+
+        available_scores = []
+        if provider_success.get("enamae", False):
+            available_scores.append(enamae_score)
+        if provider_success.get("namaeuranai", False):
+            available_scores.append(namaeuranai_score)
+
+        total_score = (
+            sum(available_scores) / len(available_scores) if available_scores else 0
+        )
         return enamae_score, namaeuranai_score, total_score
 
     def _calculate_enamae_score(self, result: Dict[str, str]) -> float:

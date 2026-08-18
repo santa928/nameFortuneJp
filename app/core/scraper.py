@@ -1,7 +1,7 @@
 import logging
 import re
 import urllib.parse
-from typing import Dict
+from typing import Dict, Optional, TypedDict
 
 import requests
 import urllib3
@@ -12,6 +12,14 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 # 中央の setup_logging() で basicConfig 済み
 logger = logging.getLogger(__name__)
+
+
+class ProviderResult(TypedDict):
+    """外部姓名判断サイトごとの取得結果。"""
+
+    success: bool
+    data: Dict[str, str]
+    error: Optional[str]
 
 
 class NameFortuneScraper:
@@ -33,7 +41,7 @@ class NameFortuneScraper:
         first_name: str,
         gender: str = "m",
         stroke_list_mode: bool = False,
-    ) -> Dict[str, Dict[str, str]]:
+    ) -> Dict[str, ProviderResult]:
         """
         姓名判断サイトから運勢を取得
 
@@ -44,29 +52,43 @@ class NameFortuneScraper:
             stroke_list_mode: 画数別運勢一覧モード
 
         Returns:
-            Dict[str, Dict[str, str]]: 各サイトの運勢結果
+            Dict[str, ProviderResult]: 各サイトの取得結果
         """
         self.logger.info(f"運勢取得開始: {last_name} {first_name} ({gender})")
 
         # 各サイトから結果を取得
-        enamae_results = self._get_enamae_fortune(
+        enamae_result = self._get_enamae_fortune(
             last_name, first_name, gender, stroke_list_mode
         )
-        namaeuranai_results = self._get_namaeuranai_fortune(
+        namaeuranai_result = self._get_namaeuranai_fortune(
             last_name, first_name, gender, stroke_list_mode
         )
 
-        # 結果を結合
+        if enamae_result["success"]:
+            enamae_result["data"] = self._sort_results(
+                enamae_result["data"], is_enamae=True
+            )
+        if namaeuranai_result["success"]:
+            namaeuranai_result["data"] = self._sort_results(
+                namaeuranai_result["data"], is_enamae=False
+            )
+
         results = {
-            "enamae.net": self._sort_results(enamae_results, is_enamae=True),
-            "namaeuranai.biz": self._sort_results(namaeuranai_results, is_enamae=False),
+            "enamae.net": enamae_result,
+            "namaeuranai.biz": namaeuranai_result,
         }
 
         self.logger.info(
-            f"運勢取得完了: enamae({len(enamae_results)}項目), "
-            f"namaeuranai({len(namaeuranai_results)}項目)"
+            f"運勢取得完了: enamae({len(enamae_result['data'])}項目), "
+            f"namaeuranai({len(namaeuranai_result['data'])}項目)"
         )
         return results
+
+    def _success_result(self, data: Dict[str, str]) -> ProviderResult:
+        return {"success": True, "data": data, "error": None}
+
+    def _failure_result(self, error: str) -> ProviderResult:
+        return {"success": False, "data": {}, "error": error}
 
     def _sort_results(
         self, results: Dict[str, str], *, is_enamae: bool = True
@@ -97,7 +119,7 @@ class NameFortuneScraper:
         first_name: str,
         gender: str,
         stroke_list_mode: bool = False,
-    ) -> Dict[str, str]:
+    ) -> ProviderResult:
         """enamae.netから運勢を取得"""
         try:
             # 画数別運勢一覧モードの場合は男性固定
@@ -116,17 +138,20 @@ class NameFortuneScraper:
             results = self._extract_enamae_results(soup)
 
             if not results:
-                self.logger.warning("enamae.net: 結果が取得できませんでした")
-                return {}
+                error = "enamae.net: 結果が取得できませんでした"
+                self.logger.warning(error)
+                return self._failure_result(error)
 
-            return results
+            return self._success_result(results)
 
         except requests.RequestException as e:
-            self.logger.error(f"enamae.net リクエストエラー: {e}")
-            return {}
+            error = f"enamae.net リクエストエラー: {e}"
+            self.logger.error(error)
+            return self._failure_result(error)
         except Exception as e:
-            self.logger.error(f"enamae.net 予期せぬエラー: {e}")
-            return {}
+            error = f"enamae.net 予期せぬエラー: {e}"
+            self.logger.error(error)
+            return self._failure_result(error)
 
     def _get_namaeuranai_fortune(
         self,
@@ -134,7 +159,7 @@ class NameFortuneScraper:
         first_name: str,
         gender: str,
         stroke_list_mode: bool = False,
-    ) -> Dict[str, str]:
+    ) -> ProviderResult:
         """namaeuranai.bizから運勢を取得"""
         try:
             # 画数別運勢一覧モードの場合は男性固定
@@ -166,17 +191,20 @@ class NameFortuneScraper:
             results = self._extract_namaeuranai_results(soup)
 
             if not results:
-                self.logger.warning("namaeuranai.biz: 結果が取得できませんでした")
-                return {}
+                error = "namaeuranai.biz: 結果が取得できませんでした"
+                self.logger.warning(error)
+                return self._failure_result(error)
 
-            return results
+            return self._success_result(results)
 
         except requests.RequestException as e:
-            self.logger.error(f"namaeuranai.biz リクエストエラー: {e}")
-            return {}
+            error = f"namaeuranai.biz リクエストエラー: {e}"
+            self.logger.error(error)
+            return self._failure_result(error)
         except Exception as e:
-            self.logger.error(f"namaeuranai.biz 予期せぬエラー: {e}")
-            return {}
+            error = f"namaeuranai.biz 予期せぬエラー: {e}"
+            self.logger.error(error)
+            return self._failure_result(error)
 
     def _extract_enamae_results(self, soup: BeautifulSoup) -> Dict[str, str]:
         """enamae.netの結果を抽出"""
