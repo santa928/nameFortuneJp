@@ -2,7 +2,7 @@
 FROM python:3.11-slim as builder
 
 # セキュリティ: 非rootユーザーでの実行
-RUN groupadd -r appuser && useradd -r -g appuser appuser
+RUN groupadd --gid 10001 appuser && useradd --uid 10001 --gid 10001 --no-create-home appuser
 
 WORKDIR /app
 
@@ -22,7 +22,7 @@ RUN python -m pip install --no-cache-dir --upgrade pip==23.3.1 && \
 FROM python:3.11-slim
 
 # 非rootユーザーを作成
-RUN groupadd -r appuser && useradd -r -g appuser appuser
+RUN groupadd --gid 10001 appuser && useradd --uid 10001 --gid 10001 --no-create-home appuser
 
 WORKDIR /app
 
@@ -44,7 +44,7 @@ COPY --chown=appuser:appuser tests/ ./tests/
 RUN mkdir -p /app/static && chown -R appuser:appuser /app
 
 # 非rootユーザーに切り替え
-USER appuser
+USER 10001:10001
 
 # ポートを公開
 EXPOSE 5000
@@ -54,4 +54,4 @@ CMD ["python", "-m", "app.main"]
 
 # より詳細なヘルスチェック
 HEALTHCHECK --interval=30s --timeout=10s --retries=3 --start-period=40s \
-    CMD curl -f http://localhost:5000/healthz || exit 1
+    CMD ["curl", "-f", "http://localhost:5000/healthz"]

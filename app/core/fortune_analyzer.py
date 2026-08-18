@@ -119,6 +119,9 @@ class FortuneAnalyzer:
                 "enamae_result": fortune_result["enamae"],
                 "namaeuranai_result": fortune_result["namaeuranai"],
                 "total_score": total_score,
+                "has_provider_result": bool(
+                    fortune_result["enamae"] or fortune_result["namaeuranai"]
+                ),
             }
 
         # -- 並列数を制御するセマフォ --
@@ -135,10 +138,15 @@ class FortuneAnalyzer:
         # gather で同時実行し、完了を待つ
         results = await asyncio.gather(*tasks)
 
-        # スコアで降順ソートして上位20件を取得
-        sorted_results = sorted(results, key=lambda x: x["total_score"], reverse=True)[
-            :20
+        # 両プロバイダーから結果を取得できなかったパターンはランキングから除外
+        valid_results = [
+            result for result in results if result.pop("has_provider_result")
         ]
+
+        # スコアで降順ソートして上位20件を取得
+        sorted_results = sorted(
+            valid_results, key=lambda x: x["total_score"], reverse=True
+        )[:20]
 
         return {
             "generated_at": datetime.now().isoformat(),
@@ -163,12 +171,21 @@ class FortuneAnalyzer:
     def _calculate_scores(
         self, fortune_result: Dict[str, Any]
     ) -> tuple[float, float, float]:
-        """運勢結果からスコア一式を計算"""
-        enamae_score = self._calculate_enamae_score(fortune_result["enamae"])
-        namaeuranai_score = self._calculate_namaeuranai_score(
-            fortune_result["namaeuranai"]
+        """取得できたプロバイダーの運勢結果からスコア一式を計算"""
+        enamae_result = fortune_result.get("enamae", {})
+        namaeuranai_result = fortune_result.get("namaeuranai", {})
+        enamae_score = self._calculate_enamae_score(enamae_result)
+        namaeuranai_score = self._calculate_namaeuranai_score(namaeuranai_result)
+
+        available_scores = []
+        if enamae_result:
+            available_scores.append(enamae_score)
+        if namaeuranai_result:
+            available_scores.append(namaeuranai_score)
+
+        total_score = (
+            sum(available_scores) / len(available_scores) if available_scores else 0
         )
-        total_score = (enamae_score + namaeuranai_score) / 2
         return enamae_score, namaeuranai_score, total_score
 
     def _calculate_enamae_score(self, result: Dict[str, str]) -> float:

@@ -22,7 +22,7 @@ class TestFortuneAnalyzer(unittest.TestCase):
                     "総格": "吉",
                     "三才配置": "大吉",
                 },
-                "expected": 91.67,  # (100 + 80 + 90 + 100 + 80 + 100) / 6
+                "expected": 91.67,
             },
             {
                 "input": {
@@ -33,7 +33,7 @@ class TestFortuneAnalyzer(unittest.TestCase):
                     "総格": "大吉",
                     "三才配置": "吉",
                 },
-                "expected": 60.0,  # (40 + 20 + 80 + 40 + 100 + 80) / 6 = 60.0
+                "expected": 60.0,
             },
             {
                 "input": {
@@ -44,7 +44,7 @@ class TestFortuneAnalyzer(unittest.TestCase):
                     "総格": "大吉",
                     "三才配置": "吉",
                 },
-                "expected": 85.0,  # (60 + 80 + 100 + 90 + 100 + 80) / 6 = 85.0
+                "expected": 85.0,
             },
         ]
 
@@ -66,7 +66,7 @@ class TestFortuneAnalyzer(unittest.TestCase):
                     "仕事運": "大大吉",
                     "家庭運": "大吉",
                 },
-                "expected": 90.0,  # 7項目平均: 90.0
+                "expected": 90.0,
             },
             {
                 "input": {
@@ -78,7 +78,7 @@ class TestFortuneAnalyzer(unittest.TestCase):
                     "仕事運": "吉",
                     "家庭運": "大凶",
                 },
-                "expected": 52.86,  # 7項目平均: 52.857...
+                "expected": 52.86,
             },
             {
                 "input": {
@@ -90,7 +90,7 @@ class TestFortuneAnalyzer(unittest.TestCase):
                     "仕事運": "大吉",
                     "家庭運": "大大吉",
                 },
-                "expected": 90.0,  # 実際のスコア: 90.0
+                "expected": 90.0,
             },
         ]
 
@@ -124,7 +124,7 @@ class TestFortuneAnalyzer(unittest.TestCase):
                         "家庭運": "大吉",
                     },
                 },
-                "expected": 90.83,  # 2サイト平均
+                "expected": 90.83,
             },
             {
                 "input": {
@@ -146,7 +146,7 @@ class TestFortuneAnalyzer(unittest.TestCase):
                         "家庭運": "大凶",
                     },
                 },
-                "expected": 56.43,  # (60.0 + 52.86) / 2 = 56.43
+                "expected": 56.43,
             },
         ]
 
@@ -154,6 +154,29 @@ class TestFortuneAnalyzer(unittest.TestCase):
             score = self.analyzer._calculate_total_score(case["input"])  # type: ignore
             expected = case["expected"]
             self.assertAlmostEqual(score, expected, places=1)  # type: ignore
+
+    def test_total_score_ignores_unavailable_provider(self) -> None:
+        """取得不能なプロバイダーを0点として平均に含めないことをテスト"""
+        result = {
+            "enamae": {
+                "天格": "大吉",
+                "人格": "吉",
+                "地格": "特殊格",
+                "外格": "大吉",
+                "総格": "吉",
+                "三才配置": "大吉",
+            },
+            "namaeuranai": {},
+        }
+        expected = self.analyzer._calculate_enamae_score(result["enamae"])
+        self.assertAlmostEqual(self.analyzer._calculate_total_score(result), expected)
+
+    def test_total_score_is_zero_when_all_providers_are_unavailable(self) -> None:
+        """全プロバイダー取得不能時に通常の平均計算をしないことをテスト"""
+        self.assertEqual(
+            self.analyzer._calculate_total_score({"enamae": {}, "namaeuranai": {}}),
+            0,
+        )
 
     def test_analyzer_initialization(self) -> None:
         """FortuneAnalyzerの初期化をテスト"""

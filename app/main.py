@@ -40,6 +40,14 @@ def load_fortune_types() -> Any:
         return json.load(f)
 
 
+def _has_provider_result(raw_results: dict[str, Any]) -> bool:
+    """少なくとも1つの外部プロバイダーから有効な結果を取得できたか判定する。"""
+    return any(
+        bool(raw_results.get(provider))
+        for provider in ("enamae.net", "namaeuranai.biz")
+    )
+
+
 @app.route("/")
 def index() -> Any:
     """通常の姓名判断ページを表示"""
@@ -66,12 +74,19 @@ def analyze() -> Any:
         )
         app.logger.debug(f"スクレイピング結果: {raw_results}")
 
-        if "error" in raw_results:
-            app.logger.error(f"スクレイピングエラー: {raw_results['error']}")
-            error_response = ErrorResponse(error=str(raw_results["error"]))
-            return jsonify(error_response.model_dump()), 500
+        # scraper はプロバイダー障害時に空辞書を返すため、両方が空なら
+        # 正常な姓名判断結果ではなく upstream failure として扱う。
+        if not _has_provider_result(raw_results):
+            app.logger.error(
+                "すべての姓名判断プロバイダーから結果を取得できませんでした"
+            )
+            error_response = ErrorResponse(
+                error="姓名判断サービスから結果を取得できませんでした。時間をおいて再試行してください。",
+                error_code="PROVIDER_UNAVAILABLE",
+            )
+            return jsonify(error_response.model_dump()), 502
 
-        # UIが期待する形式に変換
+        # UIが期待する形式に変換。片方だけ取得できた場合は取得済み結果を返す。
         results = {
             "enamae": raw_results.get("enamae.net", {}),
             "namaeuranai": raw_results.get("namaeuranai.biz", {}),
