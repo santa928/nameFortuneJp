@@ -2,7 +2,6 @@ import unittest
 from unittest.mock import Mock, patch
 
 import requests
-from bs4 import BeautifulSoup
 
 from app.core.fortune_analyzer import FortuneAnalyzer
 from app.core.scraper import create_scraper
@@ -11,86 +10,136 @@ from app.core.scraper import create_scraper
 class TestScraper(unittest.TestCase):
     """スクレイピング機能のテスト"""
 
+    ENAMAE_HTML = """
+    <html>
+      <title>姓名判断</title>
+      <h2>天格（祖運）は9画で『吉』</h2><p>天格の説明</p>
+      <h2>人格（主運）は12画で『大吉』</h2><p>人格の説明</p>
+      <h2>地格（初運）は15画で『吉』</h2><p>地格の説明</p>
+    </html>
+    """
+
+    NAMAEURANAI_HTML = """
+    <html>
+      <title>姓名判断</title>
+      <div class="result-box">
+        <h3 class="title01">天格</h3>
+        <span class="f-large">吉</span>
+        <p class="text02">天格の説明</p>
+      </div>
+      <div class="result-box">
+        <h3 class="title01">人格</h3>
+        <span class="f-large">大吉</span>
+        <p class="text02">人格の説明</p>
+      </div>
+      <div class="result-box">
+        <h3 class="title01">地格</h3>
+        <span class="f-large">吉</span>
+        <p class="text02">地格の説明</p>
+      </div>
+    </html>
+    """
+
     def setUp(self) -> None:
         """テスト前の準備"""
         self.analyzer = FortuneAnalyzer()
         self.scraper = create_scraper()
 
-    def test_namaeuranai_connection(self) -> None:
-        """namaeuranai.bizへの接続テスト（SSL証明書フォールバック対応）"""
-        url = (
-            "https://namaeuranai.biz/result/"
-            "%E7%94%B0%E4%B8%AD_%E5%A4%AA%E9%83%8E/"
-            "%E7%94%B7%E6%80%A7"
-        )
-
-        # フォールバック機能のテスト
-        try:
-            # まずSSL検証有効で試行
-            response = requests.get(url, timeout=30, verify=True)
-        except requests.exceptions.SSLError:
-            # SSL証明書エラーの場合は検証無効で再試行
-            response = requests.get(url, timeout=30, verify=False)  # nosec B501
-
-        soup = BeautifulSoup(response.text, "html.parser")
-
-        # 基本的なHTMLチェック
-        self.assertEqual(response.status_code, 200)
-        self.assertIsNotNone(soup.find("title"))
-
-    def test_enamae_connection(self) -> None:
-        """enamae.netへの接続テスト"""
-        url = "https://enamae.net/m/%E7%94%B0%E4%B8%AD__%E5%A4%AA%E9%83%8E"
-        # セキュリティ強化：SSL検証を有効化、タイムアウト設定
-        response = requests.get(url, timeout=30, verify=True)
-        soup = BeautifulSoup(response.text, "html.parser")
-
-        # 基本的なHTMLチェック
-        self.assertEqual(response.status_code, 200)
-        self.assertIsNotNone(soup.find("title"))
-
-    def test_scraper_fortune_retrieval(self) -> None:
-        """実際のスクレイピング機能をテスト"""
-        result = self.scraper.get_fortune("田中", "太郎", "m")
-
-        # 両方のサイトから結果が取得できることを確認
-        self.assertIn("enamae.net", result)
-        self.assertIn("namaeuranai.biz", result)
-
-        # enamae.net の結果確認
-        enamae_result = result["enamae.net"]
-        self.assertIn("天格", enamae_result)
-        self.assertIn("人格", enamae_result)
-        self.assertIn("地格", enamae_result)
-
-        # namaeuranai.biz の結果確認
-        namaeuranai_result = result["namaeuranai.biz"]
-        self.assertIn("天格", namaeuranai_result)
-        self.assertIn("人格", namaeuranai_result)
-        self.assertIn("地格", namaeuranai_result)
+    @staticmethod
+    def _response(html: str) -> Mock:
+        response = Mock()
+        response.status_code = 200
+        response.text = html
+        response.raise_for_status.return_value = None
+        return response
 
     @patch("app.core.scraper.requests.get")
-    def test_scraper_with_mock(self, mock_get: Mock) -> None:
-        """モックを使用したスクレイパーテスト"""
-        # モックレスポンスの設定
-        mock_response = Mock()
-        mock_response.status_code = 200
-        mock_response.text = "<html><title>テスト</title></html>"
-        mock_get.return_value = mock_response
+    def test_enamae_retrieval(self, mock_get: Mock) -> None:
+        """enamae.net のHTTP応答から運勢を抽出できること"""
+        mock_get.return_value = self._response(self.ENAMAE_HTML)
 
-        # テスト実行
-        self.assertEqual(mock_response.status_code, 200)
+        result = self.scraper._get_enamae_fortune("田中", "太郎", "m")
+
+        self.assertEqual(result["天格"], "吉")
+        self.assertEqual(result["人格"], "大吉")
+        self.assertEqual(result["地格"], "吉")
+        mock_get.assert_called_once_with(
+            "https://enamae.net/m/%E7%94%B0%E4%B8%AD__%E5%A4%AA%E9%83%8E",
+            timeout=30,
+            verify=True,
+        )
+
+    @patch("app.core.scraper.requests.get")
+    def test_namaeuranai_retrieval(self, mock_get: Mock) -> None:
+        """namaeuranai.biz のHTTP応答から運勢を抽出できること"""
+        mock_get.return_value = self._response(self.NAMAEURANAI_HTML)
+
+        result = self.scraper._get_namaeuranai_fortune("田中", "太郎", "m")
+
+        self.assertEqual(result["天格"], "吉")
+        self.assertEqual(result["人格"], "大吉")
+        self.assertEqual(result["地格"], "吉")
+        mock_get.assert_called_once_with(
+            "https://namaeuranai.biz/result/"
+            "%E7%94%B0%E4%B8%AD_%E5%A4%AA%E9%83%8E/%E7%94%B7%E6%80%A7",
+            timeout=30,
+            verify=True,
+        )
+
+    @patch("app.core.scraper.requests.get")
+    def test_scraper_fortune_retrieval(self, mock_get: Mock) -> None:
+        """固定HTMLを使って両プロバイダーの取得処理を一通り検証"""
+        mock_get.side_effect = [
+            self._response(self.ENAMAE_HTML),
+            self._response(self.NAMAEURANAI_HTML),
+        ]
+
+        result = self.scraper.get_fortune("田中", "太郎", "m")
+
+        self.assertEqual(result["enamae.net"]["天格"], "吉")
+        self.assertEqual(result["enamae.net"]["人格"], "大吉")
+        self.assertEqual(result["enamae.net"]["地格"], "吉")
+        self.assertEqual(result["namaeuranai.biz"]["天格"], "吉")
+        self.assertEqual(result["namaeuranai.biz"]["人格"], "大吉")
+        self.assertEqual(result["namaeuranai.biz"]["地格"], "吉")
+        self.assertEqual(mock_get.call_count, 2)
+
+    @patch("app.core.scraper.requests.get")
+    def test_namaeuranai_ssl_fallback(self, mock_get: Mock) -> None:
+        """SSLエラー時に namaeuranai.biz だけ検証無効で再試行すること"""
+        mock_get.side_effect = [
+            requests.exceptions.SSLError("certificate error"),
+            self._response(self.NAMAEURANAI_HTML),
+        ]
+
+        result = self.scraper._get_namaeuranai_fortune("田中", "太郎", "m")
+
+        self.assertEqual(result["天格"], "吉")
+        self.assertEqual(mock_get.call_count, 2)
+        self.assertTrue(mock_get.call_args_list[0].kwargs["verify"])
+        self.assertFalse(mock_get.call_args_list[1].kwargs["verify"])
 
     def test_analyzer_initialization(self) -> None:
         """FortuneAnalyzerの初期化テスト"""
         analyzer = FortuneAnalyzer()
         self.assertIsNotNone(analyzer)
 
-    def test_invalid_url_handling(self) -> None:
-        """無効なURLの処理テスト"""
-        # 無効なURLでのテスト
-        with self.assertRaises(requests.exceptions.RequestException):
-            requests.get("http://invalid.invalid", timeout=5)
+    @patch(
+        "app.core.scraper.requests.get",
+        side_effect=requests.exceptions.RequestException("network down"),
+    )
+    def test_request_failure_returns_empty_results(self, mock_get: Mock) -> None:
+        """外部サイトへの通信失敗時は両プロバイダーを空結果として返すこと"""
+        result = self.scraper.get_fortune("田中", "太郎", "m")
+
+        self.assertEqual(
+            result,
+            {
+                "enamae.net": {},
+                "namaeuranai.biz": {},
+            },
+        )
+        self.assertEqual(mock_get.call_count, 2)
 
 
 if __name__ == "__main__":
