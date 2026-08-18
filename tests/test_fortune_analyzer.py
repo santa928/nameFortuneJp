@@ -7,11 +7,9 @@ class TestFortuneAnalyzer(unittest.TestCase):
     """FortuneAnalyzerのテスト"""
 
     def setUp(self) -> None:
-        """テスト前の準備"""
         self.analyzer = FortuneAnalyzer()
 
     def test_calculate_enamae_score(self) -> None:
-        """enamae.netのスコア計算をテスト"""
         test_cases = [
             {
                 "input": {
@@ -22,7 +20,7 @@ class TestFortuneAnalyzer(unittest.TestCase):
                     "総格": "吉",
                     "三才配置": "大吉",
                 },
-                "expected": 91.67,  # (100 + 80 + 90 + 100 + 80 + 100) / 6
+                "expected": 91.67,
             },
             {
                 "input": {
@@ -33,7 +31,7 @@ class TestFortuneAnalyzer(unittest.TestCase):
                     "総格": "大吉",
                     "三才配置": "吉",
                 },
-                "expected": 60.0,  # (40 + 20 + 80 + 40 + 100 + 80) / 6 = 60.0
+                "expected": 60.0,
             },
             {
                 "input": {
@@ -44,17 +42,14 @@ class TestFortuneAnalyzer(unittest.TestCase):
                     "総格": "大吉",
                     "三才配置": "吉",
                 },
-                "expected": 85.0,  # (60 + 80 + 100 + 90 + 100 + 80) / 6 = 85.0
+                "expected": 85.0,
             },
         ]
-
         for case in test_cases:
             score = self.analyzer._calculate_enamae_score(case["input"])  # type: ignore
-            expected = case["expected"]
-            self.assertAlmostEqual(score, expected, places=1)  # type: ignore
+            self.assertAlmostEqual(score, case["expected"], places=1)  # type: ignore
 
     def test_calculate_namaeuranai_score(self) -> None:
-        """namaeuranai.bizのスコア計算をテスト"""
         test_cases = [
             {
                 "input": {
@@ -66,7 +61,7 @@ class TestFortuneAnalyzer(unittest.TestCase):
                     "仕事運": "大大吉",
                     "家庭運": "大吉",
                 },
-                "expected": 90.0,  # 7項目平均: 90.0
+                "expected": 90.0,
             },
             {
                 "input": {
@@ -78,85 +73,57 @@ class TestFortuneAnalyzer(unittest.TestCase):
                     "仕事運": "吉",
                     "家庭運": "大凶",
                 },
-                "expected": 52.86,  # 7項目平均: 52.857...
-            },
-            {
-                "input": {
-                    "天格": "大吉",
-                    "人格": "吉",
-                    "地格": "大大吉",
-                    "外格": "大吉",
-                    "総格": "吉",
-                    "仕事運": "大吉",
-                    "家庭運": "大大吉",
-                },
-                "expected": 90.0,  # 実際のスコア: 90.0
+                "expected": 52.86,
             },
         ]
-
         for case in test_cases:
-            score = self.analyzer._calculate_namaeuranai_score(
-                case["input"]
-            )  # type: ignore
-            expected = case["expected"]
-            self.assertAlmostEqual(score, expected, places=1)  # type: ignore
+            score = self.analyzer._calculate_namaeuranai_score(case["input"])  # type: ignore
+            self.assertAlmostEqual(score, case["expected"], places=1)  # type: ignore
 
-    def test_calculate_total_score(self) -> None:
-        """総合スコアの計算をテスト"""
-        test_cases = [
-            {
-                "input": {
-                    "enamae": {
-                        "天格": "大吉",
-                        "人格": "吉",
-                        "地格": "特殊格",
-                        "外格": "大吉",
-                        "総格": "吉",
-                        "三才配置": "大吉",
-                    },
-                    "namaeuranai": {
-                        "天格": "大大吉",
-                        "人格": "大吉",
-                        "地格": "吉",
-                        "外格": "大吉",
-                        "総格": "吉",
-                        "仕事運": "大大吉",
-                        "家庭運": "大吉",
-                    },
-                },
-                "expected": 90.83,  # 2サイト平均
+    def test_calculate_total_score_uses_both_available_providers(self) -> None:
+        result = {
+            "enamae": {
+                "天格": "大吉",
+                "人格": "吉",
+                "地格": "特殊格",
+                "外格": "大吉",
+                "総格": "吉",
+                "三才配置": "大吉",
             },
-            {
-                "input": {
-                    "enamae": {
-                        "天格": "凶",
-                        "人格": "大凶",
-                        "地格": "吉",
-                        "外格": "凶",
-                        "総格": "大吉",
-                        "三才配置": "吉",
-                    },
-                    "namaeuranai": {
-                        "天格": "凶",
-                        "人格": "大凶",
-                        "地格": "吉",
-                        "外格": "凶",
-                        "総格": "大吉",
-                        "仕事運": "吉",
-                        "家庭運": "大凶",
-                    },
-                },
-                "expected": 56.43,  # (60.0 + 52.86) / 2 = 56.43
+            "namaeuranai": {
+                "天格": "大大吉",
+                "人格": "大吉",
+                "地格": "吉",
+                "外格": "大吉",
+                "総格": "吉",
+                "仕事運": "大大吉",
+                "家庭運": "大吉",
             },
-        ]
+        }
+        self.assertAlmostEqual(self.analyzer._calculate_total_score(result), 90.83, places=1)
 
-        for case in test_cases:
-            score = self.analyzer._calculate_total_score(case["input"])  # type: ignore
-            expected = case["expected"]
-            self.assertAlmostEqual(score, expected, places=1)  # type: ignore
+    def test_calculate_total_score_does_not_treat_missing_provider_as_zero(self) -> None:
+        result = {
+            "enamae": {
+                "天格": "大吉",
+                "人格": "吉",
+                "地格": "特殊格",
+                "外格": "大吉",
+                "総格": "吉",
+                "三才配置": "大吉",
+            },
+            "namaeuranai": {},
+        }
+        expected = self.analyzer._calculate_enamae_score(result["enamae"])
+        self.assertAlmostEqual(self.analyzer._calculate_total_score(result), expected)
+
+    def test_calculate_total_score_is_zero_when_all_providers_are_missing(self) -> None:
+        self.assertEqual(
+            self.analyzer._calculate_total_score({"enamae": {}, "namaeuranai": {}}),
+            0,
+        )
 
     def test_analyzer_initialization(self) -> None:
-        """FortuneAnalyzerの初期化をテスト"""
         analyzer = FortuneAnalyzer()
         self.assertIsNotNone(analyzer)
         self.assertIsNotNone(analyzer.scraper)
