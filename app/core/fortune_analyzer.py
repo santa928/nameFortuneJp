@@ -18,14 +18,6 @@ class ProgressTracker:
         self.current = 0
 
     def update(self, pattern: List[int]) -> float:
-        """進捗を更新し、現在の進捗率を返す
-
-        Args:
-            pattern (List[int]): 現在処理中の画数パターン
-
-        Returns:
-            float: 進捗率（0-100）
-        """
         self.current += 1
         return (self.current / self.total_patterns) * 100
 
@@ -34,19 +26,11 @@ class StrokePatternGenerator:
     """画数パターンを生成するクラス"""
 
     def generate_patterns(self, char_count: int) -> List[List[int]]:
-        """文字数に応じた画数パターンを生成
-
-        Args:
-            char_count (int): 文字数（1-3）
-
-        Returns:
-            List[List[int]]: 画数パターンのリスト
-        """
         if char_count == 1:
             return [[i] for i in range(1, 21)]
         elif char_count == 2:
             return [[i, j] for i in range(1, 21) for j in range(1, 21)]
-        else:  # char_count == 3
+        else:
             return [
                 [i, j, k]
                 for i in range(1, 21)
@@ -68,30 +52,16 @@ class FortuneAnalyzer:
         char_count: int,
         progress_callback: Optional[Callable[[float, List[int]], Any]] = None,
     ) -> Dict[str, Any]:
-        """指定された文字数の画数パターンを分析
-
-        Args:
-            last_name (str): 名字
-            char_count (int): 文字数（1-3）
-            progress_callback (callable, optional): 進捗報告用コールバック関数
-
-        Returns:
-            Dict[str, Any]: 分析結果
-        """
         patterns = self.pattern_generator.generate_patterns(char_count)
         progress = ProgressTracker(len(patterns))
-        results = []
 
         async def process_pattern(pattern: List[int]) -> Dict[str, Any]:
-            await asyncio.sleep(0.5)  # 0.5秒のウェイト
+            await asyncio.sleep(0.5)
             name = "".join([get_character_by_strokes(s) for s in pattern])
-            # requests ベースの同期 I/O をスレッドプールで実行し、
-            # イベントループをブロックしない
             raw_fortune_result = await asyncio.to_thread(
                 self.scraper.get_fortune, last_name, name, "m", True
             )
 
-            # UIが期待する形式に変換
             fortune_result = {
                 "enamae": raw_fortune_result.get("enamae.net", {}),
                 "namaeuranai": raw_fortune_result.get("namaeuranai.biz", {}),
@@ -101,7 +71,6 @@ class FortuneAnalyzer:
                 progress_rate = progress.update(pattern)
                 await progress_callback(progress_rate, pattern)
 
-            # スコア計算のデバッグログを追加
             enamae_score, namaeuranai_score, total_score = self._calculate_scores(
                 fortune_result
             )
@@ -119,26 +88,25 @@ class FortuneAnalyzer:
                 "enamae_result": fortune_result["enamae"],
                 "namaeuranai_result": fortune_result["namaeuranai"],
                 "total_score": total_score,
+                "has_provider_result": bool(
+                    fortune_result["enamae"] or fortune_result["namaeuranai"]
+                ),
             }
 
-        # -- 並列数を制御するセマフォ --
         semaphore = asyncio.Semaphore(4)
 
         async def _sem_task(pattern: List[int]) -> Dict[str, Any]:
-            """セマフォ付きで process_pattern を呼び出すヘルパー"""
             async with semaphore:
                 return await process_pattern(pattern)
 
-        # 非同期タスクを一括生成
         tasks = [asyncio.create_task(_sem_task(pattern)) for pattern in patterns]
-
-        # gather で同時実行し、完了を待つ
         results = await asyncio.gather(*tasks)
 
-        # スコアで降順ソートして上位20件を取得
-        sorted_results = sorted(results, key=lambda x: x["total_score"], reverse=True)[
-            :20
-        ]
+        # 両プロバイダーが取得不能だったパターンはランキング対象から除外する。
+        valid_results = [result for result in results if result.pop("has_provider_result")]
+        sorted_results = sorted(
+            valid_results, key=lambda x: x["total_score"], reverse=True
+        )[:20]
 
         return {
             "generated_at": datetime.now().isoformat(),
@@ -149,30 +117,30 @@ class FortuneAnalyzer:
         }
 
     def _calculate_total_score(self, fortune_result: Dict[str, Any]) -> float:
-        """運勢結果からトータルスコアを計算
-
-        Args:
-            fortune_result (Dict[str, Any]): 運勢結果
-
-        Returns:
-            float: トータルスコア
-        """
         _, _, total_score = self._calculate_scores(fortune_result)
         return total_score
 
     def _calculate_scores(
         self, fortune_result: Dict[str, Any]
     ) -> tuple[float, float, float]:
-        """運勢結果からスコア一式を計算"""
-        enamae_score = self._calculate_enamae_score(fortune_result["enamae"])
-        namaeuranai_score = self._calculate_namaeuranai_score(
-            fortune_result["namaeuranai"]
+        """取得できたプロバイダーだけを使ってスコアを計算する。"""
+        enamae_result = fortune_result.get("enamae", {})
+        namaeuranai_result = fortune_result.get("namaeuranai", {})
+        enamae_score = self._calculate_enamae_score(enamae_result)
+        namaeuranai_score = self._calculate_namaeuranai_score(namaeuranai_result)
+
+        available_scores = []
+        if enamae_result:
+            available_scores.append(enamae_score)
+        if namaeuranai_result:
+            available_scores.append(namaeuranai_score)
+
+        total_score = (
+            sum(available_scores) / len(available_scores) if available_scores else 0
         )
-        total_score = (enamae_score + namaeuranai_score) / 2
         return enamae_score, namaeuranai_score, total_score
 
     def _calculate_enamae_score(self, result: Dict[str, str]) -> float:
-        """enamae.netの結果からスコアを計算"""
         score_map = {
             "大吉": 100,
             "吉": 80,
@@ -181,11 +149,8 @@ class FortuneAnalyzer:
             "凶": 40,
             "大凶": 20,
         }
-
         scores = []
         target_keys = ["天格", "人格", "地格", "外格", "総格", "三才配置"]
-
-        # 基本運勢のスコア計算
         for key in target_keys:
             if key in result:
                 value = result[key]
@@ -195,19 +160,14 @@ class FortuneAnalyzer:
                         f"enamae: {key}の値「{value}」のスコアが0になりました"
                     )
                 scores.append(score)
-
         logger.debug(f"enamae raw result: {result}")
         logger.debug(f"enamae scores: {list(zip(target_keys, scores))}")
         return sum(scores) / len(scores) if scores else 0
 
     def _calculate_namaeuranai_score(self, result: Dict[str, str]) -> float:
-        """namaeuranai.bizの結果からスコアを計算"""
         score_map = {"大大吉": 100, "大吉": 90, "吉": 80, "凶": 40, "大凶": 20}
-
         scores = []
         target_keys = ["天格", "人格", "地格", "外格", "総格", "仕事運", "家庭運"]
-
-        # 基本運勢のスコア計算
         for key in target_keys:
             if key in result:
                 value = result[key]
@@ -217,7 +177,6 @@ class FortuneAnalyzer:
                         f"namaeuranai: {key}の値「{value}」のスコアが0になりました"
                     )
                 scores.append(score)
-
         logger.debug(f"namaeuranai raw result: {result}")
         logger.debug(f"namaeuranai scores: {list(zip(target_keys, scores))}")
         return sum(scores) / len(scores) if scores else 0
@@ -225,34 +184,15 @@ class FortuneAnalyzer:
     async def save_results(
         self, results: Dict[str, Any], filename: Optional[str] = None
     ) -> str:
-        """分析結果をJSONファイルに保存
-
-        Args:
-            results (Dict[str, Any]): 分析結果
-            filename (str, optional): 保存するファイル名
-
-        Returns:
-            str: 保存したファイルのパス
-        """
         if filename is None:
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             filename = f"fortune_analysis_{timestamp}.json"
-
         with open(filename, "w", encoding="utf-8") as f:
             json.dump(results, f, ensure_ascii=False, indent=2)
-
         return filename
 
 
 def get_character_by_strokes(strokes: int) -> str:
-    """画数に対応する文字を返す
-
-    Args:
-        strokes (int): 画数（1-20）
-
-    Returns:
-        str: 対応する漢字
-    """
     stroke_characters = {
         1: "一",
         2: "二",
