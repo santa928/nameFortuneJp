@@ -60,7 +60,9 @@ class TestProviderFailures(unittest.TestCase):
         self.assertEqual(response.status_code, 502)
         self.assertIn("外部サイト", response.get_json()["error"])
 
-    def test_analyze_returns_successful_provider_when_other_provider_fails(self) -> None:
+    def test_analyze_returns_successful_provider_when_other_provider_fails(
+        self,
+    ) -> None:
         partial_result = {
             "enamae.net": {
                 "success": True,
