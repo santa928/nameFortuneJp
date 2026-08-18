@@ -139,7 +139,9 @@ class FortuneAnalyzer:
         results = await asyncio.gather(*tasks)
 
         # 両プロバイダーから結果を取得できなかったパターンはランキングから除外
-        valid_results = [result for result in results if result.pop("has_provider_result")]
+        valid_results = [
+            result for result in results if result.pop("has_provider_result")
+        ]
 
         # スコアで降順ソートして上位20件を取得
         sorted_results = sorted(
