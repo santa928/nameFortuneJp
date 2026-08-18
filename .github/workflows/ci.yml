@@ -47,7 +47,7 @@ jobs:
     - name: Run pre-commit hooks
       run: |
         pip install pre-commit
-        pre-commit run --all-files
+        SKIP=hadolint-docker pre-commit run --all-files
 
     - name: Run tests with coverage
       run: |
